@@ -1,4 +1,7 @@
 import 'package:nagpur_rider/utils/services/json_parser.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/model/rider_popup_order.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/model/rider_popup_order.dart'
+    as rider_bag;
 
 const String modelName = 'available_orders_model';
 
@@ -97,6 +100,9 @@ class Orders {
   final String? updatedAt;
   final String? total;
 
+  /// Per-seller share of the order with the bag it was packed into.
+  final List<RiderSellerOrder>? sellerOrders;
+
   Orders({
     this.id,
     this.uuid,
@@ -134,7 +140,11 @@ class Orders {
     this.createdAt,
     this.updatedAt,
     this.total,
+    this.sellerOrders,
   });
+
+  /// A seller bag is still to be scanned: no item may be collected yet.
+  bool get needsBagScan => rider_bag.needsBagScan(sellerOrders);
 
   factory Orders.fromJson(Map<String, dynamic> json) {
     return Orders(
@@ -192,6 +202,10 @@ class Orders {
       createdAt: JsonParser.string(json['created_at']),
       updatedAt: JsonParser.string(json['updated_at']),
       total: JsonParser.string(json['total']),
+      sellerOrders:
+          json['seller_orders'] is List || json['pickup_bags'] is List
+              ? RiderSellerOrder.listFromOrder(json)
+              : null,
     );
   }
 
@@ -233,6 +247,7 @@ class Orders {
     String? createdAt,
     String? updatedAt,
     String? total,
+    List<RiderSellerOrder>? sellerOrders,
   }) {
     return Orders(
       id: id ?? this.id,
@@ -272,6 +287,7 @@ class Orders {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       total: total ?? this.total,
+      sellerOrders: sellerOrders ?? this.sellerOrders,
     );
   }
 }

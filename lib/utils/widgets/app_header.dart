@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ionicons/ionicons.dart';
 import 'package:nagpur_rider/l10n/app_localizations.dart';
 import '../../config/colors.dart';
 import '../../router/app_routes.dart';
@@ -175,7 +174,7 @@ class _AppHeaderState extends State<AppHeader> {
                   onPressed: () {
                     context.push(AppRoutes.notifications);
                   },
-                  icon: Icon(Ionicons.notifications),
+                  icon: Icon(Icons.notifications),
                 ),
               ),
 
@@ -254,7 +253,7 @@ class _AppHeaderState extends State<AppHeader> {
         //     GestureDetector(
         //       onTap: widget.onNotificationTap,
         //       child: Icon(
-        //         Ionicons.notifications,
+        //         Icons.notifications,
         //         color: AppColors.primaryColor,
         //       ),
         //     ),

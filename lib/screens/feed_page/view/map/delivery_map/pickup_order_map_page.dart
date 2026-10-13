@@ -4,13 +4,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:nagpur_rider/utils/widgets/custom_scaffold.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../config/colors.dart';
+import '../../../../../utils/map/google_map_helpers.dart';
 import '../../../../../config/theme_bloc.dart';
 import '../../../model/return_orders_list_model.dart';
 import '../../../../../utils/widgets/custom_button.dart';
@@ -34,7 +35,7 @@ class PickupOrderMapPage extends StatefulWidget {
 }
 
 class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
-  late MapController _mapController;
+  gm.GoogleMapController? _mapController;
   LocationData? _currentLocation;
   bool _isLoadingLocation = true;
 
@@ -46,7 +47,7 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
   void initState() {
     super.initState();
 
-    _mapController = MapController();
+    _preloadMarkerIcons();
 
     Future.delayed(const Duration(seconds: 6), () {
       if (!mounted) return;
@@ -203,10 +204,7 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
     }
 
     if (allPoints.length >= 2) {
-      final bounds = LatLngBounds.fromPoints(allPoints);
-      _mapController.fitCamera(
-        CameraFit.bounds(bounds: bounds, padding: EdgeInsets.all(50)),
-      );
+      GoogleMapHelpers.fitPoints(_mapController, allPoints, padding: 50);
     }
   }
 
@@ -223,38 +221,53 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
     return const LatLng(23.2488453, 69.6696795);
   }
 
-  List<Marker> _buildMarkers() {
-    final markers = <Marker>[];
+  static const double _markerSize = 45;
+  static const double _markerBorder = 4;
+
+  Future<void> _preloadMarkerIcons() async {
+    await Future.wait([
+      for (final entry in [
+        (Colors.blue, Icons.location_history),
+        (Colors.orange, Icons.person_pin_circle),
+        (Colors.green, Icons.person_pin_circle),
+        (Colors.red, Icons.store),
+        (Colors.green, Icons.store),
+      ])
+        MapMarkerIcons.load(
+          background: entry.$1,
+          icon: entry.$2,
+          size: _markerSize,
+          borderWidth: _markerBorder,
+        ),
+    ]);
+    if (mounted) setState(() {});
+  }
+
+  gm.Marker _circleMarker(String id, LatLng point, Color color, IconData icon) {
+    return gm.Marker(
+      markerId: gm.MarkerId(id),
+      position: GoogleMapHelpers.toGm(point),
+      icon: MapMarkerIcons.get(
+        background: color,
+        icon: icon,
+        size: _markerSize,
+        borderWidth: _markerBorder,
+      ),
+      anchor: const Offset(0.5, 0.5),
+    );
+  }
+
+  Set<gm.Marker> _buildMarkers() {
+    final markers = <gm.Marker>{};
 
     // Current location marker
     if (_currentLocation != null) {
       markers.add(
-        Marker(
-          point: LatLng(
-            _currentLocation!.latitude!,
-            _currentLocation!.longitude!,
-          ),
-          width: 45.w,
-          height: 45.h,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.blue,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 4.w),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 10.r,
-                  offset: Offset(0, 3.h),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.location_history,
-              color: Colors.white,
-              size: 20.sp,
-            ),
-          ),
+        _circleMarker(
+          'current',
+          LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!),
+          Colors.blue,
+          Icons.location_history,
         ),
       );
     }
@@ -267,32 +280,11 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
       if (customerLocation.latitude != null &&
           customerLocation.longitude != null) {
         markers.add(
-          Marker(
-            point: LatLng(
-              customerLocation.latitude!,
-              customerLocation.longitude!,
-            ),
-            width: 45.w,
-            height: 45.h,
-            child: Container(
-              decoration: BoxDecoration(
-                color: _currentStage >= 1 ? Colors.green : Colors.orange,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4.w),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    blurRadius: 10.r,
-                    offset: Offset(0, 3.h),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.person_pin_circle,
-                color: Colors.white,
-                size: 20.sp,
-              ),
-            ),
+          _circleMarker(
+            'customer',
+            LatLng(customerLocation.latitude!, customerLocation.longitude!),
+            _currentStage >= 1 ? Colors.green : Colors.orange,
+            Icons.person_pin_circle,
           ),
         );
       }
@@ -303,25 +295,11 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
 
         if (storeLocation.latitude != null && storeLocation.longitude != null) {
           markers.add(
-            Marker(
-              point: LatLng(storeLocation.latitude!, storeLocation.longitude!),
-              width: 45.w,
-              height: 45.h,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _currentStage >= 2 ? Colors.green : Colors.red,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4.w),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      blurRadius: 10.r,
-                      offset: Offset(0, 3.h),
-                    ),
-                  ],
-                ),
-                child: Icon(Icons.store, color: Colors.white, size: 20.sp),
-              ),
+            _circleMarker(
+              'store',
+              LatLng(storeLocation.latitude!, storeLocation.longitude!),
+              _currentStage >= 2 ? Colors.green : Colors.red,
+              Icons.store,
             ),
           );
         }
@@ -466,35 +444,36 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
           ),
           body: Stack(
             children: [
-              FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter:
-                      (() {
-                        final center = _getCurrentLocationLatLng();
-                        return _isValidLatLng(center)
-                            ? center
-                            : const LatLng(23.2488453, 69.6696795);
-                      })(),
-                  initialZoom: 15,
+              gm.GoogleMap(
+                initialCameraPosition: gm.CameraPosition(
+                  target: GoogleMapHelpers.toGm(
+                    (() {
+                      final center = _getCurrentLocationLatLng();
+                      return _isValidLatLng(center)
+                          ? center
+                          : const LatLng(23.2488453, 69.6696795);
+                    })(),
+                  ),
+                  zoom: 15,
                 ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/'
-                        'World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-                    subdomains: const ['a', 'b', 'c'],
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => _fitMapToAllPoints(),
+                  );
+                },
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                mapToolbarEnabled: false,
+                polylines: {
+                  gm.Polyline(
+                    polylineId: const gm.PolylineId('route'),
+                    points: GoogleMapHelpers.toGmList(_generateRoute()),
+                    width: 3.sp.round(),
+                    color: AppColors.primaryColor,
                   ),
-                  PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: _generateRoute(),
-                        strokeWidth: 3.sp,
-                        color: AppColors.primaryColor,
-                      ),
-                    ],
-                  ),
-                  MarkerLayer(markers: _buildMarkers()),
-                ],
+                },
+                markers: _buildMarkers(),
               ),
               // Bottom information card
               Positioned(
@@ -697,7 +676,7 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
 
   @override
   void dispose() {
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 }

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nagpur_rider/config/colors.dart';
+import 'package:nagpur_rider/utils/map/google_map_helpers.dart';
 import 'package:nagpur_rider/utils/widgets/custom_text.dart';
 import '../bloc/delivery_zone_bloc.dart';
 import '../bloc/delivery_zone_event.dart';
@@ -23,11 +24,16 @@ class DeliveryZoneDetailsPage extends StatefulWidget {
 }
 
 class _DeliveryZoneDetailsPageState extends State<DeliveryZoneDetailsPage> {
-  final MapController _mapController = MapController();
-
   @override
   void initState() {
     super.initState();
+    MapMarkerIcons.load(
+      icon: Icons.location_pin,
+      iconColor: AppColors.primaryColor,
+      size: 40,
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
     // If zone is not provided, fetch it
     if (widget.zone == null) {
       context.read<DeliveryZoneBloc>().add(
@@ -297,49 +303,61 @@ class _DeliveryZoneDetailsPageState extends State<DeliveryZoneDetailsPage> {
       boundaryPoints.add(boundaryPoints.first);
     }
 
-    return FlutterMap(
-      mapController: _mapController,
-      options: MapOptions(
-        initialCenter: center,
-        initialZoom: 12.0,
-        minZoom: 5.0,
-        maxZoom: 18.0,
+    final gmBoundary = GoogleMapHelpers.toGmList(boundaryPoints);
+
+    return gm.GoogleMap(
+      initialCameraPosition: gm.CameraPosition(
+        target: GoogleMapHelpers.toGm(center),
+        zoom: 12.0,
       ),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.example.nagpur_rider',
-        ),
-        // Polygon with dotted border
-        if (boundaryPoints.isNotEmpty)
-          PolygonLayer(
-            polygons: [
-              Polygon(
-                points: boundaryPoints,
-                color: AppColors.primaryColor.withValues(alpha: 0.2),
-                borderStrokeWidth: 2.0,
-                borderColor: AppColors.primaryColor,
-                isFilled: true,
-                isDotted: true, // This makes the border dotted
-              ),
-            ],
-          ),
-        // Center marker
-        MarkerLayer(
-          markers: [
-            Marker(
-              point: center,
-              width: 40.w,
-              height: 40.h,
-              child: Icon(
-                Icons.location_pin,
-                color: AppColors.primaryColor,
-                size: 40.sp,
-              ),
+      minMaxZoomPreference: const gm.MinMaxZoomPreference(5.0, 18.0),
+      onMapCreated: (controller) {
+        if (boundaryPoints.length >= 3) {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => GoogleMapHelpers.fitPoints(
+              controller,
+              boundaryPoints,
+              padding: 40,
             ),
-          ],
+          );
+        }
+      },
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      // Zone fill; border is drawn as a dashed polyline below
+      polygons: {
+        if (gmBoundary.isNotEmpty)
+          gm.Polygon(
+            polygonId: const gm.PolygonId('zone'),
+            points: gmBoundary,
+            fillColor: AppColors.primaryColor.withValues(alpha: 0.2),
+            strokeWidth: 0,
+            strokeColor: Colors.transparent,
+          ),
+      },
+      polylines: {
+        if (gmBoundary.isNotEmpty)
+          gm.Polyline(
+            polylineId: const gm.PolylineId('zone_border'),
+            points: gmBoundary,
+            width: 2,
+            color: AppColors.primaryColor,
+            patterns: [gm.PatternItem.dot, gm.PatternItem.gap(8)],
+          ),
+      },
+      // Center marker
+      markers: {
+        gm.Marker(
+          markerId: const gm.MarkerId('center'),
+          position: GoogleMapHelpers.toGm(center),
+          icon: MapMarkerIcons.get(
+            icon: Icons.location_pin,
+            iconColor: AppColors.primaryColor,
+            size: 40,
+          ),
         ),
-      ],
+      },
     );
   }
 

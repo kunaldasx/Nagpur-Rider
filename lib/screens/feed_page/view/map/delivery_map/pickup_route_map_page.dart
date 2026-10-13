@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:nagpur_rider/screens/feed_page/view/map/store_pickup_route/services/location_service.dart';
 import 'package:nagpur_rider/screens/feed_page/view/map/store_pickup_route/services/map_service.dart';
 import 'package:nagpur_rider/utils/widgets/custom_scaffold.dart';
@@ -12,7 +12,7 @@ import 'package:location/location.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nagpur_rider/l10n/app_localizations.dart';
 import '../../../../../config/colors.dart';
-import '../../../../../config/constant.dart';
+import '../../../../../utils/map/google_map_helpers.dart';
 import '../../../../../config/theme_bloc.dart';
 import '../../../model/available_orders.dart';
 import '../../../bloc/order_details_bloc/order_details_bloc.dart';
@@ -37,7 +37,7 @@ class PickupRouteMapPage extends StatefulWidget {
 
 class _PickupRouteMapPageState extends State<PickupRouteMapPage>
     with TickerProviderStateMixin {
-  late MapController _mapController;
+  gm.GoogleMapController? _mapController;
   LocationData? _currentLocation;
   bool _isLoadingLocation = true;
   List<LatLng> _accurateRoutePoints = [];
@@ -59,7 +59,9 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
   void initState() {
     super.initState();
 
-    _mapController = MapController();
+    MapService.preloadMarkerIcons().then((_) {
+      if (mounted) setState(() {});
+    });
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -237,37 +239,12 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
       }
     }
 
-    // Filter out any invalid points
-    final validPoints = allPoints.where((p) => _isValidLatLng(p)).toList();
-
-    if (validPoints.length >= 2) {
-      // Check if we have at least 2 distinct points to avoid zero-size bounds
-      final distinctPoints =
-          validPoints
-              .fold<List<LatLng>>([], (list, p) {
-                if (list.isEmpty ||
-                    list.every(
-                      (existing) =>
-                          (existing.latitude - p.latitude).abs() > 0.000001 ||
-                          (existing.longitude - p.longitude).abs() > 0.000001,
-                    )) {
-                  list.add(p);
-                }
-                return list;
-              });
-
-      if (distinctPoints.length >= 2) {
-        final bounds = LatLngBounds.fromPoints(distinctPoints);
-        _mapController.fitCamera(
-          CameraFit.bounds(bounds: bounds, padding: EdgeInsets.all(50)),
-        );
-      } else if (distinctPoints.isNotEmpty) {
-        // Only one distinct point, just move there
-        _mapController.move(distinctPoints.first, 13.0);
-      }
-    } else if (validPoints.isNotEmpty) {
-      _mapController.move(validPoints.first, 13.0);
-    }
+    GoogleMapHelpers.fitPoints(
+      _mapController,
+      allPoints,
+      padding: 50,
+      singlePointZoom: 13.0,
+    );
   }
 
   Future<void> _fetchAccurateRoute() async {
@@ -406,22 +383,25 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
     return routePoints;
   }
 
-  List<Polyline> _buildRoutePolylines() {
+  Set<gm.Polyline> _buildRoutePolylines() {
     final routePoints =
         _accurateRoutePoints.isNotEmpty
             ? _accurateRoutePoints
             : _generateRoute();
 
-    if (routePoints.length < 2) return [];
+    if (routePoints.length < 2) return {};
 
-    return [
-      Polyline(
-        points: routePoints,
-        strokeWidth: 5,
+    return {
+      gm.Polyline(
+        polylineId: const gm.PolylineId('route'),
+        points: GoogleMapHelpers.toGmList(routePoints),
+        width: 5,
         color: const Color(0xFF059669),
-        strokeCap: StrokeCap.round,
+        startCap: gm.Cap.roundCap,
+        endCap: gm.Cap.roundCap,
+        jointType: gm.JointType.round,
       ),
-    ];
+    };
   }
 
   LatLng _getDestinationLocation() {
@@ -538,7 +518,7 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
   void dispose() {
     _locationSubscription?.cancel();
     _animationController?.dispose();
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -628,7 +608,7 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
     );
   }
 
-  List<Marker> _buildMarkers() {
+  Set<gm.Marker> _buildMarkers() {
     // Convert animated location back to LocationData format for the service
     LocationData? animatedLocation;
     if (_animatedRiderLatLng != null) {
@@ -681,47 +661,42 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
           ),
           body: Stack(
             children: [
-              FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter:
-                      (() {
-                        final center =
-                            _currentLocation != null
-                                ? _getCurrentLocationLatLng()
-                                : const LatLng(23.2530, 69.6693);
-                        return _isValidLatLng(center)
-                            ? center
-                            : const LatLng(23.2530, 69.6693);
-                      })(),
-                  initialZoom: 13.0,
-                  onMapReady: () {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (_currentLocation != null) _fitMapToAllPoints();
-                    });
-                  },
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/'
-                        'World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-                    subdomains: const ['a', 'b', 'c'],
-                    userAgentPackageName: packageName,
-                    maxZoom: 19,
-                    minZoom: 0.0,
+              gm.GoogleMap(
+                initialCameraPosition: gm.CameraPosition(
+                  target: GoogleMapHelpers.toGm(
+                    (() {
+                      final center =
+                          _currentLocation != null
+                              ? _getCurrentLocationLatLng()
+                              : const LatLng(23.2530, 69.6693);
+                      return _isValidLatLng(center)
+                          ? center
+                          : const LatLng(23.2530, 69.6693);
+                    })(),
                   ),
-                  if (_currentLocation != null) ...[
-                    PolylineLayer(
-                      polylines: [
-                      Polyline(
-                        points: _generateRoute(),
-                        strokeWidth: 3.sp,
-                        color: AppColors.primaryColor,
-                      ),
-                    ],),
-                    MarkerLayer(markers: _buildMarkers()),
-                  ],
-                ],
+                  zoom: 13.0,
+                ),
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (_currentLocation != null) _fitMapToAllPoints();
+                  });
+                },
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                mapToolbarEnabled: false,
+                polylines:
+                    _currentLocation != null
+                        ? {
+                          gm.Polyline(
+                            polylineId: const gm.PolylineId('route'),
+                            points: GoogleMapHelpers.toGmList(_generateRoute()),
+                            width: 3.sp.round(),
+                            color: AppColors.primaryColor,
+                          ),
+                        }
+                        : const {},
+                markers: _currentLocation != null ? _buildMarkers() : const {},
               ),
               if (_isLoadingLocation)
                 Container(

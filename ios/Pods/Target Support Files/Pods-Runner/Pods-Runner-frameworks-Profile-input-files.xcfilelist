@@ -1,0 +1,5 @@
+${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh
+${BUILT_PRODUCTS_DIR}/flutter_background_service_ios/flutter_background_service_ios.framework
+${BUILT_PRODUCTS_DIR}/flutter_ringtone_player/flutter_ringtone_player.framework
+${BUILT_PRODUCTS_DIR}/fluttertoast/fluttertoast.framework
+${BUILT_PRODUCTS_DIR}/location/location.framework

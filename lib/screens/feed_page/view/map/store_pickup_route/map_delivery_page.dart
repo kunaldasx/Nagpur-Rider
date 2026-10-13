@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:location/location.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:latlong2/latlong.dart';
 import '../../../../../l10n/app_localizations.dart';
+import '../../../../../utils/map/google_map_helpers.dart';
 import '../../../../../utils/widgets/custom_appbar_without_navbar.dart';
 import '../../../model/available_orders.dart';
 import 'widgets/index.dart';
@@ -32,7 +33,7 @@ class MapDeliveryPage extends StatefulWidget {
 
 class _MapDeliveryPageState extends State<MapDeliveryPage>
     with TickerProviderStateMixin {
-  late MapController _mapController;
+  gm.GoogleMapController? _mapController;
   LocationData? _currentLocation;
   bool _isLoadingLocation = true;
   bool _hasReachedDestination = false;
@@ -52,7 +53,9 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
   void initState() {
     super.initState();
 
-    _mapController = MapController();
+    MapService.preloadMarkerIcons().then((_) {
+      if (mounted) setState(() {});
+    });
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -191,35 +194,12 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
         allPoints.add(destLatLng);
       }
 
-      // Filter and identify distinct points to avoid zero-size bounds
-      final validPoints = allPoints.where((p) => _isValidLatLng(p)).toList();
-
-      if (validPoints.length >= 2) {
-        final distinctPoints =
-            validPoints
-                .fold<List<LatLng>>([], (list, p) {
-                  if (list.isEmpty ||
-                      list.every(
-                        (existing) =>
-                            (existing.latitude - p.latitude).abs() > 0.000001 ||
-                            (existing.longitude - p.longitude).abs() > 0.000001,
-                      )) {
-                    list.add(p);
-                  }
-                  return list;
-                });
-
-        if (distinctPoints.length >= 2) {
-          final bounds = LatLngBounds.fromPoints(distinctPoints);
-          _mapController.fitCamera(
-            CameraFit.bounds(bounds: bounds, padding: EdgeInsets.all(50.w)),
-          );
-        } else if (distinctPoints.isNotEmpty) {
-          _mapController.move(distinctPoints.first, 15.0);
-        }
-      } else if (validPoints.isNotEmpty) {
-        _mapController.move(validPoints.first, 15.0);
-      }
+      GoogleMapHelpers.fitPoints(
+        _mapController,
+        allPoints,
+        padding: 50.w,
+        singlePointZoom: 15.0,
+      );
     } catch (e) {
       //
     }
@@ -417,25 +397,28 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
     );
   }
 
-  List<Polyline> _buildRoutePolylines() {
+  Set<gm.Polyline> _buildRoutePolylines() {
     final routePoints =
         _accurateRoutePoints.isNotEmpty
             ? _accurateRoutePoints
             : _generateRoute();
 
-    if (routePoints.length < 2) return [];
+    if (routePoints.length < 2) return {};
 
-    return [
-      Polyline(
-        points: routePoints,
-        strokeWidth: 5,
+    return {
+      gm.Polyline(
+        polylineId: const gm.PolylineId('route'),
+        points: GoogleMapHelpers.toGmList(routePoints),
+        width: 5,
         color: const Color(0xFF059669),
-        strokeCap: StrokeCap.round,
+        startCap: gm.Cap.roundCap,
+        endCap: gm.Cap.roundCap,
+        jointType: gm.JointType.round,
       ),
-    ];
+    };
   }
 
-  List<Marker> _buildAllMarkers() {
+  Set<gm.Marker> _buildAllMarkers() {
     // Convert animated location back to LocationData format for the service
     LocationData? animatedLocation;
     if (_animatedRiderLatLng != null) {
@@ -473,7 +456,8 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
     } else {}
   }
 
-  void _onMapReady() {
+  void _onMapCreated(gm.GoogleMapController controller) {
+    _mapController = controller;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fitMapToAllPoints();
       _calculateDistanceToStores(); // Calculate distance when map is ready
@@ -500,7 +484,6 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
           children: [
             // Map
             MapViewWidget(
-              mapController: _mapController,
               initialCenter:
                   (() {
                     final center = _getDestinationLocation();
@@ -510,7 +493,7 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
                   })(),
               polylines: _buildRoutePolylines(),
               markers: _buildAllMarkers(),
-              onMapReady: _onMapReady,
+              onMapCreated: _onMapCreated,
               showMapContent: _currentLocation != null,
             ),
 
@@ -550,7 +533,7 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
   void dispose() {
     _locationSubscription?.cancel();
     _animationController?.dispose();
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 }

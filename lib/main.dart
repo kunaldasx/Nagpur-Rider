@@ -25,6 +25,9 @@ import 'package:nagpur_rider/screens/feed_page/bloc/return_order/pickup_order_de
 import 'package:nagpur_rider/screens/feed_page/bloc/return_order/pickup_orders_list_bloc/pickup_order_list_bloc.dart';
 import 'package:nagpur_rider/screens/feed_page/bloc/return_order/return_orders_list_bloc/return_order_list_bloc.dart';
 import 'package:nagpur_rider/screens/feed_page/bloc/return_order/update_return_order_status_bloc/update_return_order_status_bloc.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/cubit/rider_popup_cubit.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/view/rider_order_overlay.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/view/rider_popup_controller.dart';
 import 'package:nagpur_rider/screens/pockets/cash_collection/bloc/cash_collection_bloc.dart';
 import 'package:nagpur_rider/screens/pockets/cash_collection/bloc/cash_collection_event.dart';
 import 'package:nagpur_rider/screens/pockets/cash_collection/repo/cash_collection_repo.dart';
@@ -188,6 +191,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => DeliveryBoyStatusBloc()),
         BlocProvider(create: (context) => AvailableOrdersBloc()),
         BlocProvider(create: (context) => MyOrdersBloc()),
+        BlocProvider(create: (context) => RiderPopupCubit()),
         BlocProvider(
           create: (context) => ProfileBloc(profileRepo)..add(LoadProfile()),
         ),
@@ -230,7 +234,8 @@ class MyApp extends StatelessWidget {
                 bottom: Platform.isIOS ? false : true,
                 left: false,
                 right: false,
-                child: MaterialApp.router(
+                child: RiderPopupController(
+                  child: MaterialApp.router(
                   debugShowCheckedModeBanner: false,
                   theme: AppColor.getLightTheme(),
                   darkTheme: AppColor.getDarkTheme(),
@@ -246,10 +251,13 @@ class MyApp extends StatelessWidget {
                   builder: (context, child) {
                     return FToastBuilder()(
                       context,
-                      LocationMonitor(child: child!),
+                      RiderOrderOverlay(
+                        child: LocationMonitor(child: child!),
+                      ),
                     );
                   },
                   routerConfig: MyAppRoute.router,
+                  ),
                 ),
               );
             },

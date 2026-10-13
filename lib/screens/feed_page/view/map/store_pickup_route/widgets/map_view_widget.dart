@@ -1,51 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:latlong2/latlong.dart';
-import 'package:nagpur_rider/config/constant.dart';
+import 'package:nagpur_rider/utils/map/google_map_helpers.dart';
 
 class MapViewWidget extends StatelessWidget {
-  final MapController mapController;
   final LatLng initialCenter;
-  final List<Polyline> polylines;
-  final List<Marker> markers;
-  final VoidCallback onMapReady;
+  final Set<gm.Polyline> polylines;
+  final Set<gm.Marker> markers;
+  final ValueChanged<gm.GoogleMapController> onMapCreated;
   final bool showMapContent;
 
   const MapViewWidget({
     super.key,
-    required this.mapController,
     required this.initialCenter,
     required this.polylines,
     required this.markers,
-    required this.onMapReady,
+    required this.onMapCreated,
     required this.showMapContent,
   });
 
   @override
   Widget build(BuildContext context) {
-    return FlutterMap(
-      mapController: mapController,
-      options: MapOptions(
-        initialCenter: initialCenter,
-        initialZoom: 15.0, // Increased default zoom for better visibility
-        onMapReady: onMapReady,
-        interactionOptions: const InteractionOptions(
-          flags: InteractiveFlag.all,
-        ),
+    return gm.GoogleMap(
+      initialCameraPosition: gm.CameraPosition(
+        target: GoogleMapHelpers.toGm(initialCenter),
+        zoom: 15.0, // Increased default zoom for better visibility
       ),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/'
-              'World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-          subdomains: const ['a', 'b', 'c'],
-          userAgentPackageName: packageName,
-        ),
-        // Only show polylines and markers when content is available
-        if (showMapContent) ...[
-          PolylineLayer(polylines: polylines),
-          MarkerLayer(markers: markers),
-        ],
-      ],
+      onMapCreated: onMapCreated,
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      compassEnabled: true,
+      // Only show polylines and markers when content is available
+      polylines: showMapContent ? polylines : const {},
+      markers: showMapContent ? markers : const {},
     );
   }
 }

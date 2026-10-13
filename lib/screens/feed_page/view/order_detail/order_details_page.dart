@@ -39,6 +39,7 @@ import '../../services/dialog_service.dart';
 import '../../../../utils/services/phone_service.dart';
 import '../../../../utils/services/ui_helper_service.dart';
 import '../../services/item_card_service.dart';
+import '../../rider_popup/cubit/rider_popup_cubit.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   final int orderId;
@@ -252,13 +253,28 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<SystemSettingsBloc, SystemSettingsState>(
-      listener: (context, state) {
-        if (state is SystemSettingsLoaded) {
-          // Trigger a rebuild to update currency symbols
-          setState(() {});
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<SystemSettingsBloc, SystemSettingsState>(
+          listener: (context, state) {
+            if (state is SystemSettingsLoaded) {
+              // Trigger a rebuild to update currency symbols
+              setState(() {});
+            }
+          },
+        ),
+        // The bag scan popup moved this order's items to collected.
+        BlocListener<RiderPopupCubit, RiderPopupState>(
+          listenWhen: (prev, curr) =>
+              prev.pickupVersion != curr.pickupVersion &&
+              curr.lastPickedUpOrderId == widget.orderId,
+          listener: (context, state) {
+            context.read<OrderDetailsBloc>().add(
+              FetchOrderDetails(widget.orderId),
+            );
+          },
+        ),
+      ],
       child: BlocConsumer<ItemsCollectedBloc, ItemsCollectedState>(
         listener: (context, state) {
           if (state is ItemsCollectedSuccess) {
@@ -724,7 +740,22 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
     _showEarningsPopup();
   }
 
+  /// Items can't be collected before the seller's bag is scanned: opens the
+  /// bag scan popup instead and returns false.
+  bool _ensureBagScanned() {
+    final order = _fetchedOrder;
+    if (order?.id == null || !order!.needsBagScan) return true;
+    context.read<RiderPopupCubit>().openAccepted(order.id!, stayOnScreen: true);
+    ToastManager.show(
+      context: context,
+      message: 'Scan the bag assigned to this order before confirming pickup.',
+      type: ToastType.warning,
+    );
+    return false;
+  }
+
   void _collectItem(Items item) {
+    if (!_ensureBagScanned()) return;
     // Collect the item directly (no OTP required)
     if (item.id != null) {
       // Set the current processing item ID for tracking
@@ -828,6 +859,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
   }
 
   void _collectAllItems() async {
+    if (!_ensureBagScanned()) return;
     setState(() {
       _isCollectingAll = true;
     });

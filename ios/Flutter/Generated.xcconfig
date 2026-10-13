@@ -1,8 +1,9 @@
 // This is a generated file; do not edit or check into version control.
-FLUTTER_ROOT=C:\Users\tusha\flutter
-FLUTTER_APPLICATION_PATH=C:\Users\tusha\Desktop\Nagpur Rider App
+FLUTTER_ROOT=/Users/tusharyadav/Documents/flutter
+FLUTTER_APPLICATION_PATH=/Users/tusharyadav/Desktop/NagpuMart/Nagpur-Rider
+FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/Users/tusharyadav/Desktop/NagpuMart/Nagpur-Rider/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework
 COCOAPODS_PARALLEL_CODE_SIGN=true
-FLUTTER_TARGET=lib\main.dart
+FLUTTER_TARGET=lib/main.dart
 FLUTTER_BUILD_DIR=build
 FLUTTER_BUILD_NAME=1.1.1
 FLUTTER_BUILD_NUMBER=10

@@ -1,9 +1,10 @@
 import 'dart:math' show sin, cos, atan2, sqrt, pow;
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:dio/dio.dart';
+import '../../../../../../utils/map/google_map_helpers.dart';
 import '../../../../model/available_orders.dart';
 
 class MapService {
@@ -180,107 +181,64 @@ class MapService {
     return curvedPoints;
   }
 
-  /// Generate dashed route polylines
-  static List<Polyline> generateDashedRoute(List<LatLng> routePoints) {
-    final List<Polyline> dashedPolylines = [];
+  static const Color _routeStoreColor = Colors.orange;
+  static final Color _deliveryStoreColor = Colors.orange.withValues(alpha: 0.8);
 
-    if (routePoints.length < 2) {
-      if (routePoints.isNotEmpty) {
-        return [
-          Polyline(
-            points: routePoints,
-            strokeWidth: 1.5, // Very thin lines for elegant appearance
-            color: const Color(0xFF059669),
-          ),
-        ];
-      }
-      return [];
-    }
-
-    // Use straight lines directly (no curves)
-
-    // Create proper dashed lines by breaking the route into segments
-    for (int i = 0; i < routePoints.length - 1; i++) {
-      final start = routePoints[i];
-      final end = routePoints[i + 1];
-
-      // Create multiple small dashes for each segment
-      const int numDashes = 8;
-      for (int dash = 0; dash < numDashes; dash++) {
-        final dashStartFraction = dash / numDashes.toDouble();
-        final dashEndFraction =
-            (dash + 0.6) / numDashes.toDouble(); // 60% dash, 40% gap
-
-        if (dashEndFraction <= 1.0) {
-          final dashStart = _interpolatePoint(start, end, dashStartFraction);
-          final dashEnd = _interpolatePoint(start, end, dashEndFraction);
-
-          dashedPolylines.add(
-            Polyline(
-              points: [dashStart, dashEnd],
-              strokeWidth: 3, // Very thin lines for elegant appearance
-              color: const Color(0xFF059669),
-              strokeCap: StrokeCap.round,
-            ),
-          );
-        }
-      }
-    }
-    return dashedPolylines;
+  /// Generates every marker icon used by [buildPickupMarkers] and
+  /// [buildDeliveryMarkers]. Await before building markers.
+  static Future<void> preloadMarkerIcons() async {
+    await Future.wait([
+      MapMarkerIcons.load(background: Colors.blue, icon: Icons.directions_bike),
+      MapMarkerIcons.load(
+        background: _routeStoreColor,
+        icon: Icons.store,
+        size: 40,
+      ),
+      MapMarkerIcons.load(
+        background: _deliveryStoreColor,
+        icon: Icons.store,
+        size: 35,
+        borderWidth: 2,
+      ),
+      MapMarkerIcons.load(background: Colors.red, icon: Icons.location_on),
+    ]);
   }
 
-  /// Helper method to interpolate between two points
-  static LatLng _interpolatePoint(LatLng start, LatLng end, double fraction) {
-    final lat = start.latitude + (end.latitude - start.latitude) * fraction;
-    final lng = start.longitude + (end.longitude - start.longitude) * fraction;
-    return LatLng(lat, lng);
+  static bool _isValidLocation(LocationData? location) =>
+      location != null &&
+      location.latitude != null &&
+      location.longitude != null &&
+      !location.latitude!.isNaN &&
+      !location.latitude!.isInfinite &&
+      !location.longitude!.isNaN &&
+      !location.longitude!.isInfinite;
+
+  static gm.Marker _riderMarker(LocationData location, double rotation) {
+    return gm.Marker(
+      markerId: const gm.MarkerId('rider'),
+      position: gm.LatLng(location.latitude!, location.longitude!),
+      icon: MapMarkerIcons.get(
+        background: Colors.blue,
+        icon: Icons.directions_bike,
+      ),
+      anchor: const Offset(0.5, 0.5),
+      rotation: rotation,
+      flat: true,
+      zIndexInt: 2,
+    );
   }
 
   /// Build all markers for the map
-  static List<Marker> buildPickupMarkers(
+  static Set<gm.Marker> buildPickupMarkers(
     LocationData? currentLocation,
     List<RouteDetails>? routeDetails, {
     double rotation = 0,
   }) {
-    final List<Marker> markers = [];
+    final Set<gm.Marker> markers = {};
 
     // Current location marker (Rider - Blue vehicle)
-    if (currentLocation != null &&
-        currentLocation.latitude != null &&
-        currentLocation.longitude != null &&
-        !currentLocation.latitude!.isNaN &&
-        !currentLocation.latitude!.isInfinite &&
-        !currentLocation.longitude!.isNaN &&
-        !currentLocation.longitude!.isInfinite) {
-      markers.add(
-        Marker(
-          point: LatLng(currentLocation.latitude!, currentLocation.longitude!),
-          width: 45,
-          height: 45,
-          child: Transform.rotate(
-            angle: rotation * pi / 180,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.directions_bike,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-          ),
-        ),
-      );
+    if (_isValidLocation(currentLocation)) {
+      markers.add(_riderMarker(currentLocation!, rotation));
     }
 
     // Store markers (Yellow/Orange circles)
@@ -289,25 +247,16 @@ class MapService {
       final store = stores[i];
       if (store.latitude != null && store.longitude != null) {
         markers.add(
-          Marker(
-            point: LatLng(store.latitude!, store.longitude!),
-            width: 40,
-            height: 40,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.orange,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.store, color: Colors.white, size: 20),
+          gm.Marker(
+            markerId: gm.MarkerId('store_$i'),
+            position: gm.LatLng(store.latitude!, store.longitude!),
+            icon: MapMarkerIcons.get(
+              background: _routeStoreColor,
+              icon: Icons.store,
+              size: 40,
             ),
+            anchor: const Offset(0.5, 0.5),
+            infoWindow: gm.InfoWindow(title: store.storeName),
           ),
         );
       }
@@ -317,50 +266,16 @@ class MapService {
   }
 
   /// Build delivery markers
-  static List<Marker> buildDeliveryMarkers(
+  static Set<gm.Marker> buildDeliveryMarkers(
     LocationData? currentLocation,
     List<RouteDetails>? routeDetails, {
     double rotation = 0,
   }) {
-    final List<Marker> markers = [];
+    final Set<gm.Marker> markers = {};
 
     // Current location marker (Rider - Blue vehicle)
-    if (currentLocation != null &&
-        currentLocation.latitude != null &&
-        currentLocation.longitude != null &&
-        !currentLocation.latitude!.isNaN &&
-        !currentLocation.latitude!.isInfinite &&
-        !currentLocation.longitude!.isNaN &&
-        !currentLocation.longitude!.isInfinite) {
-      markers.add(
-        Marker(
-          point: LatLng(currentLocation.latitude!, currentLocation.longitude!),
-          width: 45,
-          height: 45,
-          child: Transform.rotate(
-            angle: rotation * pi / 180,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.directions_bike,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-          ),
-        ),
-      );
+    if (_isValidLocation(currentLocation)) {
+      markers.add(_riderMarker(currentLocation!, rotation));
     }
 
     // Store markers (Yellow/Orange) - showing where the items were picked up from
@@ -369,18 +284,17 @@ class MapService {
       final store = stores[i];
       if (store.latitude != null && store.longitude != null) {
         markers.add(
-          Marker(
-            point: LatLng(store.latitude!, store.longitude!),
-            width: 35,
-            height: 35,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.8),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: const Icon(Icons.store, color: Colors.white, size: 16),
+          gm.Marker(
+            markerId: gm.MarkerId('store_$i'),
+            position: gm.LatLng(store.latitude!, store.longitude!),
+            icon: MapMarkerIcons.get(
+              background: _deliveryStoreColor,
+              icon: Icons.store,
+              size: 35,
+              borderWidth: 2,
             ),
+            anchor: const Offset(0.5, 0.5),
+            infoWindow: gm.InfoWindow(title: store.storeName),
           ),
         );
       }
@@ -391,29 +305,15 @@ class MapService {
       final customer = routeDetails.last;
       if (customer.latitude != null && customer.longitude != null) {
         markers.add(
-          Marker(
-            point: LatLng(customer.latitude!, customer.longitude!),
-            width: 45,
-            height: 45,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.location_on,
-                color: Colors.white,
-                size: 24,
-              ),
+          gm.Marker(
+            markerId: const gm.MarkerId('customer'),
+            position: gm.LatLng(customer.latitude!, customer.longitude!),
+            icon: MapMarkerIcons.get(
+              background: Colors.red,
+              icon: Icons.location_on,
             ),
+            anchor: const Offset(0.5, 0.5),
+            zIndexInt: 1,
           ),
         );
       }

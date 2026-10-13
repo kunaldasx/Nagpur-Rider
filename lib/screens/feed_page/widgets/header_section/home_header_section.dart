@@ -6,7 +6,6 @@ import 'package:nagpur_rider/screens/dashboard/bloc/notification/notification_bl
 import 'package:nagpur_rider/utils/widgets/custom_button.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ionicons/ionicons.dart';
 import '../../../../config/colors.dart';
 import '../../../../utils/widgets/custom_text.dart';
 import '../../../../utils/widgets/toast_message.dart';
@@ -230,7 +229,7 @@ class HomeHeaderSection extends StatelessWidget {
                                   onPressed: () {
                                     context.push(AppRoutes.notifications);
                                   },
-                                  icon: Icon(Ionicons.notifications),
+                                  icon: Icon(Icons.notifications),
                                 ),
                               );
                             },

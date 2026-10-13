@@ -13,6 +13,7 @@ import '../../bloc/accept_order_bloc/accept_order_state.dart';
 import '../../bloc/available_orders_bloc/available_orders_bloc.dart';
 import '../../bloc/available_orders_bloc/available_orders_event.dart';
 import '../../model/available_orders.dart';
+import '../../rider_popup/cubit/rider_popup_cubit.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../router/app_routes.dart';
 import '../../../../utils/widgets/toast_message.dart';
@@ -289,8 +290,7 @@ class _AvailableOrderCardContent extends StatelessWidget {
               child: BlocConsumer<AcceptOrderBloc, AcceptOrderState>(
                 listener: (context, state) {
                   if (state is AcceptOrderSuccess) {
-                    // Navigate to map delivery page on success
-                    _navigateToMapDeliveryPage(context, order);
+                    _afterAccept(context, order);
                   } else if (state is AcceptOrderCompleted) {
                     // Refresh the available orders list when order is completed
                     context.read<AvailableOrdersBloc>().add(
@@ -382,6 +382,14 @@ class _AvailableOrderCardContent extends StatelessWidget {
   }
 
   // Navigation method for map delivery page
+  /// Orders packed in a seller bag go to the bag scan popup first; the
+  /// rider continues to the map from there. Others go straight to the map.
+  Future<void> _afterAccept(BuildContext context, Orders order) async {
+    final cubit = context.read<RiderPopupCubit>();
+    final opened = await cubit.openAccepted(order.id!);
+    if (!opened && context.mounted) _navigateToMapDeliveryPage(context, order);
+  }
+
   Future<void> _navigateToMapDeliveryPage(
     BuildContext context,
     Orders order,
