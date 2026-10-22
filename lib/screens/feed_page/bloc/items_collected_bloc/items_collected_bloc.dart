@@ -57,6 +57,7 @@ class ItemsCollectedBloc
       final response = await ItemsCollectedRepo().itemsDelivered(
         event.orderItemId,
         event.otp,
+        cashCollected: event.cashCollected,
       );
 
       // Check if success is true OR if message contains "already has this status"
@@ -88,6 +89,7 @@ class ItemsCollectedBloc
       final response = await ItemsCollectedRepo().itemsDelivered(
         event.orderItemId,
         null,
+        cashCollected: event.cashCollected,
       );
 
       // Check if success is true OR if message contains "already has this status"

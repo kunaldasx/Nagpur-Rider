@@ -53,6 +53,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'utils/notification_manager.dart';
 import 'utils/location_tracker.dart';
 import 'screens/dashboard/bloc/notification/notification_bloc.dart';
+import 'package:nagpur_rider/utils/services/order_alert_bridge.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/cubit/alert_accept_cubit.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/view/alert_accept_layer.dart';
 import 'package:nagpur_rider/utils/location_monitor_widget.dart';
 import 'screens/dashboard/repo/notification_list_repo.dart';
 
@@ -90,6 +93,13 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('theme_box');
   await Global.initializeToken();
+
+  // Native order alerts ring only while logged in. Synced on every start so
+  // riders already logged in before this update get alerts too.
+  OrderAlertBridge.init();
+  await OrderAlertBridge.setLoggedIn(
+    (Global.userToken ?? '').trim().isNotEmpty,
+  );
 
   final localizationService = LocalizationService();
   await localizationService.initialize();
@@ -192,6 +202,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => AvailableOrdersBloc()),
         BlocProvider(create: (context) => MyOrdersBloc()),
         BlocProvider(create: (context) => RiderPopupCubit()),
+        BlocProvider(create: (context) => AlertAcceptCubit()),
         BlocProvider(
           create: (context) => ProfileBloc(profileRepo)..add(LoadProfile()),
         ),
@@ -236,27 +247,29 @@ class MyApp extends StatelessWidget {
                 right: false,
                 child: RiderPopupController(
                   child: MaterialApp.router(
-                  debugShowCheckedModeBanner: false,
-                  theme: AppColor.getLightTheme(),
-                  darkTheme: AppColor.getDarkTheme(),
-                  themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-                  locale: localizationService.currentLocale,
-                  localizationsDelegates: [
-                    AppLocalizations.delegate,
-                    GlobalMaterialLocalizations.delegate,
-                    GlobalWidgetsLocalizations.delegate,
-                    GlobalCupertinoLocalizations.delegate,
-                  ],
-                  supportedLocales: LocalizationService.supportedLocales,
-                  builder: (context, child) {
-                    return FToastBuilder()(
-                      context,
-                      RiderOrderOverlay(
-                        child: LocationMonitor(child: child!),
-                      ),
-                    );
-                  },
-                  routerConfig: MyAppRoute.router,
+                    debugShowCheckedModeBanner: false,
+                    theme: AppColor.getLightTheme(),
+                    darkTheme: AppColor.getDarkTheme(),
+                    themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+                    locale: localizationService.currentLocale,
+                    localizationsDelegates: [
+                      AppLocalizations.delegate,
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                    ],
+                    supportedLocales: LocalizationService.supportedLocales,
+                    builder: (context, child) {
+                      return FToastBuilder()(
+                        context,
+                        AlertAcceptLayer(
+                          child: RiderOrderOverlay(
+                            child: LocationMonitor(child: child!),
+                          ),
+                        ),
+                      );
+                    },
+                    routerConfig: MyAppRoute.router,
                   ),
                 ),
               );

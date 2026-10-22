@@ -8,6 +8,7 @@ import 'package:nagpur_rider/screens/feed_page/view/map/store_pickup_route/servi
 import 'package:nagpur_rider/screens/feed_page/view/map/store_pickup_route/services/map_service.dart';
 import 'package:nagpur_rider/utils/widgets/custom_scaffold.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:location/location.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nagpur_rider/l10n/app_localizations.dart';
@@ -41,12 +42,17 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
   LocationData? _currentLocation;
   bool _isLoadingLocation = true;
   List<LatLng> _accurateRoutePoints = [];
-  StreamSubscription<LocationData>? _locationSubscription;
+  List<RouteOption> _routeOptions = [];
+  int _selectedRouteIndex = 0;
+  Map<int, gm.BitmapDescriptor> _routeLabelIcons = {};
+  StreamSubscription<geo.Position>? _locationSubscription;
   double _riderRotation = 0;
   LatLng? _animatedRiderLatLng;
   AnimationController? _animationController;
   DateTime? _lastRerouteTime;
   bool _isFetchingRoute = false;
+  bool _hasFittedToRoute = false;
+  bool _isUsingFallbackLocation = false;
 
   // Manual confirmation variables
   bool _hasReachedDestination = false;
@@ -144,18 +150,58 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
         onTimeout: () => throw TimeoutException('Location request timed out'),
       );
 
-      setState(() {
-        _currentLocation = locationData;
-        _isLoadingLocation = false;
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _fitMapToAllPoints();
-        _fetchAccurateRoute();
-      });
+      _applyInitialLocation(locationData);
     } catch (e) {
-      _setFallbackLocation();
+      // The location plugin can time out without a fresh GPS fix; try
+      // geolocator before falling back to the delivery address.
+      final fix = await _getGeolocatorFix();
+      if (!mounted) return;
+      if (fix != null) {
+        _applyInitialLocation(fix);
+      } else {
+        _setFallbackLocation();
+      }
     }
+  }
+
+  void _applyInitialLocation(LocationData locationData) {
+    setState(() {
+      _currentLocation = locationData;
+      _isUsingFallbackLocation = false;
+      _isLoadingLocation = false;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fitMapToAllPoints();
+      _fetchAccurateRoute();
+    });
+  }
+
+  Future<LocationData?> _getGeolocatorFix() async {
+    try {
+      final lastKnown = await geo.Geolocator.getLastKnownPosition();
+      if (lastKnown != null) return _positionToLocationData(lastKnown);
+
+      final current = await geo.Geolocator.getCurrentPosition(
+        locationSettings: const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+      return _positionToLocationData(current);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  LocationData _positionToLocationData(geo.Position position) {
+    return LocationData.fromMap({
+      'latitude': position.latitude,
+      'longitude': position.longitude,
+      'accuracy': position.accuracy,
+      'heading': position.heading,
+      'speed': position.speed,
+    });
   }
 
   void _checkArrivalStatus() {
@@ -181,6 +227,7 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
 
   void _setFallbackLocation() {
     setState(() {
+      _isUsingFallbackLocation = true;
       // Use shipping address coordinates as fallback location
       double fallbackLat = 23.2488453; // Default Bhuj coordinates
       double fallbackLng = 69.6696795;
@@ -259,22 +306,113 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
     );
 
     if (routePoints.length >= 2) {
-      final accuratePoints = await MapService.fetchAccurateRoute(routePoints);
+      final options = await MapService.fetchRouteOptions(
+        routePoints.first,
+        routePoints.last,
+      );
+      if (!mounted) {
+        _isFetchingRoute = false;
+        return;
+      }
+      final selectedIndex =
+          _selectedRouteIndex < options.length ? _selectedRouteIndex : 0;
+      final accuratePoints =
+          options.isNotEmpty ? options[selectedIndex].points : routePoints;
+      final labelIcons = await _loadRouteLabelIcons(options, selectedIndex);
       if (mounted) {
         setState(() {
+          _routeOptions = options;
+          _selectedRouteIndex = selectedIndex;
+          _routeLabelIcons = labelIcons;
           _accurateRoutePoints = accuratePoints;
         });
+        // Zoom to the road route the first time it arrives
+        if (!_hasFittedToRoute && _mapController != null) {
+          _hasFittedToRoute = true;
+          GoogleMapHelpers.fitPoints(
+            _mapController,
+            [for (final option in options) ...option.points, ...accuratePoints],
+            padding: 80,
+            singlePointZoom: 15.0,
+          );
+        }
       }
     }
     _isFetchingRoute = false;
   }
 
+  Future<void> _selectRoute(int index) async {
+    if (index == _selectedRouteIndex || index >= _routeOptions.length) return;
+    final labelIcons = await _loadRouteLabelIcons(_routeOptions, index);
+    if (!mounted) return;
+    setState(() {
+      _selectedRouteIndex = index;
+      _accurateRoutePoints = _routeOptions[index].points;
+      _routeLabelIcons = labelIcons;
+    });
+  }
+
+  // "X min" bubbles shown on each route, highlighted for the selected one
+  Future<Map<int, gm.BitmapDescriptor>> _loadRouteLabelIcons(
+    List<RouteOption> options,
+    int selectedIndex,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final icons = <int, gm.BitmapDescriptor>{};
+    for (int i = 0; i < options.length; i++) {
+      final isSelected = i == selectedIndex;
+      icons[i] = await MapLabelIcons.load(
+        text: l10n.routeMinutes(options[i].durationMinutes),
+        background: isSelected ? AppColors.primaryColor : Colors.white,
+        textColor: isSelected ? Colors.white : Colors.grey.shade800,
+      );
+    }
+    return icons;
+  }
+
+  // Point on a route that is farthest from the other routes, so its label
+  // sits where the routes split apart (like Google Maps)
+  LatLng _routeLabelPosition(int index) {
+    final points = _routeOptions[index].points;
+    final others = [
+      for (int i = 0; i < _routeOptions.length; i++)
+        if (i != index) _routeOptions[i].points,
+    ];
+    if (others.isEmpty) return points[points.length ~/ 2];
+
+    LatLng best = points[points.length ~/ 2];
+    double bestDistance = -1;
+    final step = math.max(1, points.length ~/ 40);
+    for (int i = step; i < points.length - step; i += step) {
+      final distance = others
+          .map((other) => MapService.minDistanceToPolyline(points[i], other))
+          .reduce(math.min);
+      if (distance > bestDistance) {
+        bestDistance = distance;
+        best = points[i];
+      }
+    }
+    return best;
+  }
+
   void _startLocationUpdates() {
     _locationSubscription?.cancel();
-    _locationSubscription = Location.instance.onLocationChanged.listen((
-      locationData,
-    ) {
+    _locationSubscription = geo.Geolocator.getPositionStream(
+      locationSettings: const geo.LocationSettings(
+        accuracy: geo.LocationAccuracy.high,
+        distanceFilter: 10,
+      ),
+    ).listen((position) {
       if (!mounted) return;
+      final locationData = _positionToLocationData(position);
+
+      // A real fix replaces the delivery-address fallback: redraw right away
+      if (_isUsingFallbackLocation) {
+        _isUsingFallbackLocation = false;
+        _isLoadingLocation = false;
+        _lastRerouteTime = null;
+        _hasFittedToRoute = false;
+      }
 
       final oldLocation = _currentLocation;
       final newLatLng = LocationService.locationDataToLatLng(locationData);
@@ -347,11 +485,20 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
   void _maybeRefreshRouteOnMovement() {
     if (_currentLocation == null || _isFetchingRoute) return;
 
+    // Routes API requests are billed: refetch only when the rider leaves the
+    // selected route, or once a minute to refresh traffic-aware times.
     final now = DateTime.now();
-    if (_lastRerouteTime != null &&
-        now.difference(_lastRerouteTime!) < const Duration(seconds: 10)) {
-      return;
-    }
+    final sinceLast =
+        _lastRerouteTime == null ? null : now.difference(_lastRerouteTime!);
+    if (sinceLast != null && sinceLast < const Duration(seconds: 10)) return;
+
+    final current = _getCurrentLocationLatLng();
+    final isOffRoute =
+        _accurateRoutePoints.length < 2 ||
+        MapService.minDistanceToPolyline(current, _accurateRoutePoints) > 50;
+    final isTimeForRefresh =
+        sinceLast == null || sinceLast >= const Duration(seconds: 60);
+    if (!isOffRoute && !isTimeForRefresh) return;
 
     _fetchAccurateRoute();
   }
@@ -368,9 +515,11 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
       // Add destination location (usually the last detail in delivery route)
       final destLocation = widget.order.deliveryRoute!.routeDetails!.last;
 
-      if (destLocation.latitude != null &&
-          destLocation.longitude != null) {
-        final destPoint = LatLng(destLocation.latitude!, destLocation.longitude!);
+      if (destLocation.latitude != null && destLocation.longitude != null) {
+        final destPoint = LatLng(
+          destLocation.latitude!,
+          destLocation.longitude!,
+        );
         if (_isValidLatLng(destPoint)) {
           // In stage 0, we show the route to the destination
           if (_currentStage == 0) {
@@ -384,6 +533,27 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
   }
 
   Set<gm.Polyline> _buildRoutePolylines() {
+    if (_routeOptions.isNotEmpty && _currentStage == 0) {
+      return {
+        for (int i = 0; i < _routeOptions.length; i++)
+          gm.Polyline(
+            polylineId: gm.PolylineId('route_$i'),
+            points: GoogleMapHelpers.toGmList(_routeOptions[i].points),
+            width: i == _selectedRouteIndex ? 7 : 6,
+            color:
+                i == _selectedRouteIndex
+                    ? AppColors.primaryColor
+                    : AppColors.primaryColor.withValues(alpha: 0.35),
+            zIndex: i == _selectedRouteIndex ? 2 : 1,
+            startCap: gm.Cap.roundCap,
+            endCap: gm.Cap.roundCap,
+            jointType: gm.JointType.round,
+            consumeTapEvents: true,
+            onTap: () => _selectRoute(i),
+          ),
+      };
+    }
+
     final routePoints =
         _accurateRoutePoints.isNotEmpty
             ? _accurateRoutePoints
@@ -396,7 +566,7 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
         polylineId: const gm.PolylineId('route'),
         points: GoogleMapHelpers.toGmList(routePoints),
         width: 5,
-        color: const Color(0xFF059669),
+        color: AppColors.primaryColor,
         startCap: gm.Cap.roundCap,
         endCap: gm.Cap.roundCap,
         jointType: gm.JointType.round,
@@ -423,51 +593,50 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
     return const LatLng(23.2488453, 69.6696795);
   }
 
-  // Calculate distance from current location to stores (excluding shipping address)
-  double _calculateDistanceToStores() {
-    if (_currentLocation == null) {
+  // Remaining distance from current location to the customer. Uses the road
+  // route when it has been fetched, otherwise the straight-line distance.
+  double _calculateRemainingDistanceKm() {
+    if (_currentLocation == null) return 0.0;
+
+    if (_routeOptions.isNotEmpty) {
+      return _routeOptions[_selectedRouteIndex].distanceKm;
+    }
+
+    if (_accurateRoutePoints.length >= 2) {
+      double total = 0.0;
+      for (int i = 1; i < _accurateRoutePoints.length; i++) {
+        total += _haversineKm(
+          _accurateRoutePoints[i - 1],
+          _accurateRoutePoints[i],
+        );
+      }
+      return total;
+    }
+
+    final currentPoint = _getCurrentLocationLatLng();
+    final destination = _getDestinationLocation();
+    if (!_isValidLatLng(currentPoint) || !_isValidLatLng(destination)) {
       return 0.0;
     }
+    return _haversineKm(currentPoint, destination);
+  }
 
-    double totalDistanceToStores = 0.0;
+  double _haversineKm(LatLng from, LatLng to) {
+    const double earthRadius = 6371; // kilometers
+    final lat1 = from.latitude * pi / 180;
+    final lat2 = to.latitude * pi / 180;
+    final deltaLat = (to.latitude - from.latitude) * pi / 180;
+    final deltaLng = (to.longitude - from.longitude) * pi / 180;
 
-    if (widget.order.deliveryRoute?.routeDetails != null) {
-      final routeDetails = widget.order.deliveryRoute!.routeDetails!;
-
-      // Exclude the last index (shipping address) - only include stores
-      for (int i = 0; i < routeDetails.length - 1; i++) {
-        final store = routeDetails[i];
-
-        if (store.latitude != null && store.longitude != null) {
-          final storePoint = LatLng(store.latitude!, store.longitude!);
-          final currentPoint = _getCurrentLocationLatLng();
-
-          if (_isValidLatLng(currentPoint) && _isValidLatLng(storePoint)) {
-            const double earthRadius = 6371; // kilometers
-            final lat1 = currentPoint.latitude * pi / 180;
-            final lat2 = storePoint.latitude * pi / 180;
-            final deltaLat =
-                (storePoint.latitude - currentPoint.latitude) * pi / 180;
-            final deltaLng =
-                (storePoint.longitude - currentPoint.longitude) * pi / 180;
-
-            final a =
-                math.sin(deltaLat / 2) * math.sin(deltaLat / 2) +
-                math.cos(lat1) *
-                    math.cos(lat2) *
-                    math.sin(deltaLng / 2) *
-                    math.sin(deltaLng / 2);
-            if (a > 1.0 || a < 0.0) continue; // Prevent NaN from sqrt/acos
-            final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-
-            final distanceToStore = earthRadius * c;
-            totalDistanceToStores += distanceToStore;
-          }
-        }
-      }
-    }
-
-    return totalDistanceToStores;
+    final a =
+        math.sin(deltaLat / 2) * math.sin(deltaLat / 2) +
+        math.cos(lat1) *
+            math.cos(lat2) *
+            math.sin(deltaLng / 2) *
+            math.sin(deltaLng / 2);
+    if (a > 1.0 || a < 0.0) return 0.0; // Prevent NaN from sqrt
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
   }
 
   LatLng _getCurrentLocationLatLng() {
@@ -580,30 +749,28 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
                 // Show success message
                 ToastManager.show(
                   context: context,
-                  message: 'Arrival confirmed! You can now view order details.',
+                  message: AppLocalizations.of(context)!.arrivalNextStepHint,
                   type: ToastType.success,
                 );
-
-                // Automatically navigate to order details page after 3 seconds
-                Future.delayed(const Duration(seconds: 3), () {
-                  if (!context.mounted) return;
-                  if (mounted) {
-                    context.pushNamed(
-                      'orderDetails',
-                      extra: {
-                        'orderId': widget.order.id,
-                        'from':
-                            false, // Using false instead of string as expected by the route
-                      },
-                    );
-                  }
-                });
               },
               backgroundColor: AppColors.primaryColor,
               textColor: Colors.white,
             ),
           ],
         );
+      },
+    );
+  }
+
+  void _openOrderDetails() {
+    context.push(
+      AppRoutes.orderDetails,
+      extra: {
+        'orderId': widget.order.id!,
+        'from': true,
+        'sourceTab':
+            1, // 1 = My Orders tab (since this is from accepted orders)
+        'arrivalConfirmed': _hasReachedDestination || _hasConfirmedArrival,
       },
     );
   }
@@ -618,10 +785,77 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
       });
     }
 
-    return MapService.buildDeliveryMarkers(
+    final markers = MapService.buildDeliveryMarkers(
       animatedLocation ?? _currentLocation,
       widget.order.deliveryRoute?.routeDetails,
       rotation: _riderRotation,
+    );
+
+    if (_currentStage == 0) {
+      for (int i = 0; i < _routeOptions.length; i++) {
+        final icon = _routeLabelIcons[i];
+        if (icon == null) continue;
+        markers.add(
+          gm.Marker(
+            markerId: gm.MarkerId('route_label_$i'),
+            position: GoogleMapHelpers.toGm(_routeLabelPosition(i)),
+            icon: icon,
+            anchor: const Offset(0.5, 1.0),
+            zIndexInt: i == _selectedRouteIndex ? 4 : 3,
+            onTap: () => _selectRoute(i),
+          ),
+        );
+      }
+    }
+
+    return markers;
+  }
+
+  // "3 min (1.4 km)" with "Fastest route" / "+2 min slower" below
+  Widget _buildDriveSummary() {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = _routeOptions[_selectedRouteIndex];
+    final extraMinutes =
+        selected.durationMinutes - _routeOptions.first.durationMinutes;
+    final isFastest = _selectedRouteIndex == 0 || extraMinutes <= 0;
+    final subtitle =
+        isFastest ? l10n.fastestRoute : l10n.routeMinutesSlower(extraMinutes);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.directions_car,
+                color: AppColors.primaryColor,
+                size: 20.sp,
+              ),
+              SizedBox(width: 8.w),
+              CustomText(
+                text:
+                    '${l10n.routeMinutes(selected.durationMinutes)} (${selected.distanceKm.toStringAsFixed(1)} ${l10n.km})',
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ],
+          ),
+          SizedBox(height: 2.h),
+          CustomText(
+            text:
+                _routeOptions.length > 1
+                    ? '$subtitle · ${l10n.tapRouteToSwitch}'
+                    : subtitle,
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w500,
+            color: isFastest ? Colors.green[700] : Colors.grey[600],
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 
@@ -678,23 +912,21 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
                 ),
                 onMapCreated: (controller) {
                   _mapController = controller;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (_currentLocation != null) _fitMapToAllPoints();
+                  // The map needs a moment to lay out before bounds can be applied
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    if (mounted && _currentLocation != null) {
+                      _fitMapToAllPoints();
+                    }
                   });
                 },
                 myLocationButtonEnabled: false,
                 zoomControlsEnabled: false,
                 mapToolbarEnabled: false,
+                // Keep the route clear of the top chip and the bottom card
+                padding: EdgeInsets.only(top: 60.h, bottom: 230.h),
                 polylines:
                     _currentLocation != null
-                        ? {
-                          gm.Polyline(
-                            polylineId: const gm.PolylineId('route'),
-                            points: GoogleMapHelpers.toGmList(_generateRoute()),
-                            width: 3.sp.round(),
-                            color: AppColors.primaryColor,
-                          ),
-                        }
+                        ? _buildRoutePolylines()
                         : const {},
                 markers: _currentLocation != null ? _buildMarkers() : const {},
               ),
@@ -740,14 +972,18 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.straighten,
+                        _routeOptions.isNotEmpty
+                            ? Icons.directions_car
+                            : Icons.straighten,
                         color: Theme.of(context).colorScheme.onSurface,
                         size: 16.sp,
                       ),
                       SizedBox(width: 4.w),
                       CustomText(
                         text:
-                            '${_calculateDistanceToStores().toStringAsFixed(1)} km',
+                            _routeOptions.isNotEmpty
+                                ? '${AppLocalizations.of(context)!.routeMinutes(_routeOptions[_selectedRouteIndex].durationMinutes)} · ${_calculateRemainingDistanceKm().toStringAsFixed(1)} km'
+                                : '${_calculateRemainingDistanceKm().toStringAsFixed(1)} km',
                         fontWeight: FontWeight.w600,
                         fontSize: 14.sp,
                       ),
@@ -816,61 +1052,59 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
                               ],
                             ),
 
-                            if (!_hasReachedDestination ||
-                                !_hasConfirmedArrival)
+                            if ((!_hasReachedDestination ||
+                                    !_hasConfirmedArrival) &&
+                                _routeOptions.isEmpty)
                               CustomText(
                                 text:
-                                    '${_calculateDistanceToStores().toStringAsFixed(1)} km',
+                                    '${_calculateRemainingDistanceKm().toStringAsFixed(1)} km',
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.grey[600],
                               ),
-                            if (_hasReachedDestination ||
-                                _hasConfirmedArrival) ...[
-                              SizedBox(
-                                width: 100.w,
-                                height: 24.h,
-                                child: CustomButton(
-                                  text:
-                                      AppLocalizations.of(context)!.viewDetails,
-                                  // width: 80.w,
-                                  textSize: 10.sp,
-                                  height: 24.h,
-
-                                  borderRadius: 12.r,
-                                  backgroundColor: AppColors.primaryColor,
-                                  textColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 8.w,
-                                    vertical: 4.h,
-                                  ),
-                                  textStyle: TextStyle(
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  onPressed: () {
-                                    context.push(
-                                      AppRoutes.orderDetails,
-                                      extra: {
-                                        'orderId': widget.order.id!,
-                                        'from': true,
-                                        'sourceTab':
-                                            1, // 1 = My Orders tab (since this is from accepted orders)
-                                        'arrivalConfirmed':
-                                            _hasReachedDestination ||
-                                            _hasConfirmedArrival, // Pass arrival status
-                                      },
-                                    );
-                                  },
+                            if (_hasReachedDestination || _hasConfirmedArrival)
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8.w,
+                                  vertical: 4.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 14.sp,
+                                    ),
+                                    SizedBox(width: 4.w),
+                                    CustomText(
+                                      text:
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.arrivalConfirmed,
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.green,
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
                           ],
                         ),
                       ),
 
-                      // Shipping Address Section
+                      // Drive time for the selected route
                       SizedBox(height: 12.h),
+                      if (_routeOptions.isNotEmpty && _currentStage == 0) ...[
+                        _buildDriveSummary(),
+                        SizedBox(height: 4.h),
+                      ],
+
+                      // Shipping Address Section
                       if (widget.order.shippingAddress1 != null)
                         Container(
                           padding: EdgeInsets.all(8.w),
@@ -898,6 +1132,16 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
                           ),
                         ),
                       SizedBox(height: 8.h),
+                      if (_hasReachedDestination) ...[
+                        CustomText(
+                          text:
+                              AppLocalizations.of(context)!.arrivalNextStepHint,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[600],
+                        ),
+                        SizedBox(height: 8.h),
+                      ],
 
                       SizedBox(
                         width: double.infinity,
@@ -907,38 +1151,29 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
                               _hasReachedDestination
                                   ? AppLocalizations.of(
                                     context,
-                                  )!.arrivalConfirmed
+                                  )!.continueToDelivery
                                   : AppLocalizations.of(
                                     context,
                                   )!.confirmArrival,
                           onPressed:
                               _hasReachedDestination
-                                  ? null
+                                  ? _openOrderDetails
                                   : _showArrivalConfirmationDialog,
                           icon: Icon(
                             _hasReachedDestination
-                                ? Icons.check_circle
+                                ? Icons.arrow_forward
                                 : Icons.location_on,
-                            color:
-                                _hasReachedDestination
-                                    ? Colors.green
-                                    : Colors.white,
+                            color: Colors.white,
                           ),
                           backgroundColor:
                               _hasReachedDestination
-                                  ? Colors.grey.shade200
-                                  : AppColors.primaryColor,
-                          textColor:
-                              _hasReachedDestination
                                   ? Colors.green
-                                  : Colors.white,
+                                  : AppColors.primaryColor,
+                          textColor: Colors.white,
                           borderRadius: 8.r,
                           padding: EdgeInsets.symmetric(vertical: 12.h),
-                          textStyle: TextStyle(
-                            color:
-                                _hasReachedDestination
-                                    ? Colors.green
-                                    : Colors.white,
+                          textStyle: const TextStyle(
+                            color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

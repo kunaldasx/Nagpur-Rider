@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="order_alert_accent">#1DA05B</color>
+    <color name="order_alert_background">#0F1A14</color>
+    <color name="order_alert_card">#1B2A21</color>
+    <color name="order_alert_text">#FFFFFF</color>
+    <color name="order_alert_text_muted">#A9BBB0</color>
+</resources>

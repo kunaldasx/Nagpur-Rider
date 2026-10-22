@@ -53,8 +53,10 @@ class _SplashScreenState extends State<SplashScreen> {
           await Global.setFCMToken(fcmToken);
           log('✅ SPLASH SCREEN: Token saved to Global');
 
-          // You can save this token to your backend API when user logs in
-          // await saveFCMTokenToBackend(fcmToken);
+          // Already logged in: make sure the backend pushes order alerts
+          // to this token. Not awaited, so a slow network can't hold the
+          // splash screen.
+          NotificationManager().syncTokenWithBackend(fcmToken);
         } else {
           log('⚠️ SPLASH SCREEN: Token is null or empty');
           // Try to get token again after a short delay

@@ -53,7 +53,7 @@ class LocationHandler {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        _showLocationServiceDialog();
+        showLocationServiceDialog();
         return;
       }
 
@@ -61,13 +61,13 @@ class LocationHandler {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          _showPermissionDeniedDialog(isPermanent: false);
+          showPermissionDeniedDialog(isPermanent: false);
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        _showPermissionDeniedDialog(isPermanent: true);
+        showPermissionDeniedDialog(isPermanent: true);
         return;
       }
     } catch (e) {
@@ -75,7 +75,7 @@ class LocationHandler {
     }
   }
 
-  static void _showLocationServiceDialog() {
+  static void showLocationServiceDialog() {
     final context = navigatorKey.currentContext;
     if (_isDialogShowing || context == null || !context.mounted) return;
     _isDialogShowing = true;
@@ -117,7 +117,7 @@ class LocationHandler {
     });
   }
 
-  static void _showPermissionDeniedDialog({required bool isPermanent}) {
+  static void showPermissionDeniedDialog({required bool isPermanent}) {
     final context = navigatorKey.currentContext;
     if (_isDialogShowing || context == null || !context.mounted) return;
     _isDialogShowing = true;

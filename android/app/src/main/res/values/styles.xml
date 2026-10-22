@@ -15,4 +15,10 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <!-- The incoming-order screen shown over the lock screen. -->
+    <style name="IncomingOrderTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/order_alert_background</item>
+        <item name="android:statusBarColor">@color/order_alert_background</item>
+        <item name="android:navigationBarColor">@color/order_alert_background</item>
+    </style>
 </resources>

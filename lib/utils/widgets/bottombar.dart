@@ -33,7 +33,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   static const List<String> _routes = [
     AppRoutes.home, // Home tab with StatisticsPage
     AppRoutes.feed, // Feed tab
-    AppRoutes.pockets, // Pockets tab
+    AppRoutes.pockets, // Earnings tab
     AppRoutes.more, // Settings tab
   ];
 
@@ -60,12 +60,16 @@ class _BottomNavBarState extends State<BottomNavBar> {
               // Solid bottom navigation bar
               if (!widget.hideBottomNav)
                 Container(
-                  height: 50.h,
+                  height: 56.h,
                   decoration: BoxDecoration(
-                    color:
-                        Theme.of(context)
-                            .colorScheme
-                            .sameColorChange, // Dark grey solid background
+                    color: Theme.of(context).colorScheme.sameColorChange,
+                    border: Border(
+                      top: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.08),
+                      ),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -88,7 +92,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                           break;
                         case AppRoutes.pockets:
                           icon = Icons.account_balance_wallet;
-                          label = AppLocalizations.of(context)!.pockets;
+                          label = AppLocalizations.of(context)!.earnings;
                           break;
                         case AppRoutes.more:
                           icon = Icons.settings;

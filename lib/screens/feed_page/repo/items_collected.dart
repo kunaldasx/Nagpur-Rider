@@ -17,8 +17,9 @@ class ItemsCollectedRepo {
 
   Future<Map<String, dynamic>> itemsDelivered(
     String orderItemId,
-    String? otp,
-  ) async {
+    String? otp, {
+    bool cashCollected = false,
+  }) async {
     try {
       // Initialize the body with the status
       final Map<String, dynamic> body = {'status': 'delivered'};
@@ -26,6 +27,12 @@ class ItemsCollectedRepo {
       // Add otp to the body only if it is not null or empty
       if (otp != null && otp.isNotEmpty) {
         body['otp'] = otp;
+      }
+
+      // Cash COD is confirmed together with the delivery. UPI is confirmed
+      // by the Razorpay webhook, so it is never sent here.
+      if (cashCollected) {
+        body['payment_collection'] = {'method': 'cash'};
       }
 
       final response = await ApiBaseHelper.put(

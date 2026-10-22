@@ -22,6 +22,7 @@ import '../bloc/inactive_page_stats/home_stats_state.dart';
 import '../bloc/inactive_page_stats/home_stats_event.dart';
 import '../model/home_stats_model.dart';
 import '../repo/home_stats_repo.dart';
+import 'widgets/home_dashboard_sections.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -33,6 +34,7 @@ class StatisticsPage extends StatefulWidget {
 class _StatisticsPageState extends State<StatisticsPage> {
   String _selectedChartPeriod = 'Week'; // Default value
   bool _isLocalized = false;
+  int _refreshCount = 0;
 
   @override
   void initState() {
@@ -115,6 +117,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         try {
                           final bloc = context.read<HomeStatsBloc>();
                           bloc.add(RefreshHomeStats());
+                          setState(() => _refreshCount++);
                         } catch (e) {
                           //
                         }
@@ -161,33 +164,30 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Widget _buildHomeStatsContent(HomeStatsResponse response) {
+    final profileData = _findDataByKey(
+      response.data,
+      'profile',
+      (data) => data.profileData,
+    );
+    final summaryData = _findDataByKey(
+      response.data,
+      'summary',
+      (data) => data.summaryData,
+    );
+
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 5.w),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.only(left: 5.w, right: 5.w, bottom: 16.h),
       child: Column(
         children: [
-          // Profile Card
-          _buildProfileCard(response),
-          SizedBox(height: 16.h),
-
-          // Summary Cards
-          _buildSummaryCards(response),
-          SizedBox(height: 16.h),
-
-          // Performance Metrics
-          _buildPerformanceMetrics(response),
-          SizedBox(height: 16.h),
-
-          // Today Progress
-          _buildTodayProgress(response),
-          SizedBox(height: 16.h),
-
-          // Earnings Analytics
-          _buildEarningsAnalytics(response),
-          SizedBox(height: 20.h),
-
-          // Quick Actions
-          _buildQuickActions(),
-          // SizedBox(height: 100.h),
+          HomeProfileCard(deliveryBoy: profileData?.deliveryBoy),
+          SizedBox(height: 18.h),
+          HomeTodayEarnings(
+            key: ValueKey('today_earnings_$_refreshCount'),
+            totalEarnings: summaryData?.today.earnings ?? 0,
+          ),
+          SizedBox(height: 18.h),
+          HomeMyOrderDetails(key: ValueKey('my_orders_$_refreshCount')),
         ],
       ),
     );
@@ -509,18 +509,18 @@ class _StatisticsPageState extends State<StatisticsPage> {
           SizedBox(height: 16.h),
           Row(
             children: [
-              Expanded(
-                child: _buildProgressItem(
-                  AppLocalizations.of(context)!.earnings,
-                  CurrencyFormatter.formatAmount(
-                    context,
-                    (todayData?.earnings ?? 0.0).toString(),
-                  ),
-                  Icons.money,
-                  Colors.green,
-                ),
-              ),
-              SizedBox(width: 8.w),
+              // Expanded(
+              //   child: _buildProgressItem(
+              //     AppLocalizations.of(context)!.earnings,
+              //     CurrencyFormatter.formatAmount(
+              //       context,
+              //       (todayData?.earnings ?? 0.0).toString(),
+              //     ),
+              //     Icons.money,
+              //     Colors.green,
+              //   ),
+              // ),
+              // SizedBox(width: 8.w),
               Expanded(
                 child: _buildProgressItem(
                   AppLocalizations.of(context)!.feeds,

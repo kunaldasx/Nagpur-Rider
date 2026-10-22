@@ -99,6 +99,8 @@ class Orders {
   final String? createdAt;
   final String? updatedAt;
   final String? total;
+  final String? cancelReason;
+  final String? cancelledBy;
 
   /// Per-seller share of the order with the bag it was packed into.
   final List<RiderSellerOrder>? sellerOrders;
@@ -140,6 +142,8 @@ class Orders {
     this.createdAt,
     this.updatedAt,
     this.total,
+    this.cancelReason,
+    this.cancelledBy,
     this.sellerOrders,
   });
 
@@ -202,6 +206,14 @@ class Orders {
       createdAt: JsonParser.string(json['created_at']),
       updatedAt: JsonParser.string(json['updated_at']),
       total: JsonParser.string(json['total']),
+      cancelReason: JsonParser.string(
+        json['cancel_reason'] ??
+            json['cancellation_reason'] ??
+            json['cancelled_reason'],
+      ),
+      cancelledBy: JsonParser.string(
+        json['cancelled_by'] ?? json['canceled_by'] ?? json['cancel_by'],
+      ),
       sellerOrders:
           json['seller_orders'] is List || json['pickup_bags'] is List
               ? RiderSellerOrder.listFromOrder(json)
@@ -247,6 +259,8 @@ class Orders {
     String? createdAt,
     String? updatedAt,
     String? total,
+    String? cancelReason,
+    String? cancelledBy,
     List<RiderSellerOrder>? sellerOrders,
   }) {
     return Orders(
@@ -287,6 +301,8 @@ class Orders {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       total: total ?? this.total,
+      cancelReason: cancelReason ?? this.cancelReason,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
       sellerOrders: sellerOrders ?? this.sellerOrders,
     );
   }

@@ -19,6 +19,8 @@ import '../../bloc/deliveryboy_status_update_bloc/deliveryboy_status_state.dart'
 import 'package:nagpur_rider/l10n/app_localizations.dart';
 import 'package:nagpur_rider/router/app_routes.dart';
 
+const Color _activeGreen = Color(0xFF22A447);
+
 class HomeHeaderSection extends StatelessWidget {
   final Function() handleToggle;
 
@@ -140,7 +142,7 @@ class HomeHeaderSection extends StatelessWidget {
                         (value) => ToggleStyle(
                           backgroundColor:
                               value
-                                  ? AppColors.primaryColor
+                                  ? _activeGreen
                                   : AppColors.errorColor,
                           borderColor: Colors.transparent,
                           indicatorColor:
@@ -150,7 +152,7 @@ class HomeHeaderSection extends StatelessWidget {
                         (context, global) => CupertinoActivityIndicator(
                           color: Color.lerp(
                             AppColors.errorColor,
-                            AppColors.primaryColor,
+                            _activeGreen,
                             global.position,
                           ),
                         ),
@@ -162,7 +164,7 @@ class HomeHeaderSection extends StatelessWidget {
                             value
                                 ? Icon(
                                   Icons.lightbulb_outline_rounded,
-                                  color: AppColors.primaryColor,
+                                  color: _activeGreen,
                                   size: 24.sp,
                                 )
                                 : Icon(
@@ -221,10 +223,9 @@ class HomeHeaderSection extends StatelessWidget {
                                 offset: Offset(-8, 4), // fine-tune position
                                 // Optional: largeSize: 18.r,           // if you want bigger badge
                                 child: IconButton(
-                                  color: AppColors.primaryColor,
+                                  color: Colors.white,
                                   style: IconButton.styleFrom(
-                                    backgroundColor: AppColors.primaryColor
-                                        .withValues(alpha: 0.1),
+                                    backgroundColor: AppColors.primaryColor,
                                   ),
                                   onPressed: () {
                                     context.push(AppRoutes.notifications);

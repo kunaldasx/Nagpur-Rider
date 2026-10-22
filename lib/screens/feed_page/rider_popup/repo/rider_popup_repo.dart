@@ -1,6 +1,29 @@
 import 'package:nagpur_rider/config/api_base_helper.dart';
 import 'package:nagpur_rider/config/api_routes.dart';
 import 'package:nagpur_rider/screens/feed_page/rider_popup/model/rider_popup_order.dart';
+import 'package:nagpur_rider/utils/services/order_alert_bridge.dart';
+
+enum AlertAcceptOutcome {
+  /// The backend confirmed the order is this rider's.
+  accepted,
+
+  /// The backend refused: cancelled, or no longer assigned to this rider.
+  unavailable,
+
+  /// Network or server trouble: the order still needs accepting.
+  retry,
+
+  /// The session expired: the rider has to log in again.
+  signedOut,
+}
+
+/// Result of accepting an order from its incoming-order alert.
+class AlertAcceptResult {
+  final AlertAcceptOutcome outcome;
+  final String message;
+
+  const AlertAcceptResult(this.outcome, [this.message = '']);
+}
 
 /// Result of scanning a bag: the bag as the server now has it.
 class BagScanResult {
@@ -47,6 +70,51 @@ class RiderPopupRepo {
     if (response['success'] != true) {
       throw ApiException(_message(response, 'This order is unavailable.'));
     }
+    await OrderAlertBridge.stopAlert(orderId);
+  }
+
+  /// Accepts [orderId] after the rider tapped Accept on its alert. Unlike
+  /// [accept], tells a refusal apart from trouble reaching the server, so
+  /// the alert only stops when the backend has decided.
+  Future<AlertAcceptResult> acceptFromAlert(int orderId) async {
+    final Map<String, dynamic> response;
+    try {
+      response = await ApiBaseHelper.post(
+        url: '$acceptOrderApi/$orderId/accept',
+        useAuthToken: true,
+      );
+    } on ApiException {
+      return const AlertAcceptResult(
+        AlertAcceptOutcome.retry,
+        "Couldn't reach the server. Check your internet and try again.",
+      );
+    }
+    if (response['success'] == true) {
+      return const AlertAcceptResult(AlertAcceptOutcome.accepted);
+    }
+    final message = response['message']?.toString().trim() ?? '';
+    final lower = message.toLowerCase();
+    if (lower.startsWith('unauthenticated')) {
+      return const AlertAcceptResult(
+        AlertAcceptOutcome.signedOut,
+        'Your session expired. Log in again to accept this order.',
+      );
+    }
+    final status = response['statusCode'];
+    // Only a body with `success: false` is the backend's decision. A crash
+    // (Laravel: `{"message": "Server Error"}`) has no `success` flag.
+    final serverError =
+        !response.containsKey('success') ||
+        (status is int && status >= 500) ||
+        lower == 'server error' ||
+        response.containsKey('exception');
+    if (serverError || message.isEmpty) {
+      return const AlertAcceptResult(
+        AlertAcceptOutcome.retry,
+        'The server had a problem. Try again.',
+      );
+    }
+    return AlertAcceptResult(AlertAcceptOutcome.unavailable, message);
   }
 
   Future<RiderPopupOrder> orderDetail(int orderId) async {

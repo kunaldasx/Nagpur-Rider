@@ -15,6 +15,10 @@ package="com.nagpurmart.rider">
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Incoming-order alert: OrderAlertService rings (mediaPlayback foreground
+         service) and IncomingOrderActivity shows over the lock screen. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
@@ -74,13 +78,36 @@ package="com.nagpurmart.rider">
             android:foregroundServiceType="location"
             android:stopWithTask="true" />
 
+        <!-- Only one service may receive MESSAGING_EVENT: RiderMessagingService
+             replaces FlutterFire's (it extends it, keeping token refresh). -->
         <service
             android:name="io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingService"
+            tools:node="remove" />
+
+        <service
+            android:name=".orderalert.RiderMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".orderalert.OrderAlertService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"
+            android:stopWithTask="false" />
+
+        <activity
+            android:name=".orderalert.IncomingOrderActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:showWhenLocked="true"
+            android:taskAffinity="com.nagpurmart.rider.incoming_order"
+            android:theme="@style/IncomingOrderTheme"
+            android:turnScreenOn="true" />
 
         <meta-data
            android:name="com.google.firebase.messaging.default_notification_icon"

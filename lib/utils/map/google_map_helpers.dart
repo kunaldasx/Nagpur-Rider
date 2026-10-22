@@ -186,3 +186,68 @@ class MapMarkerIcons {
     );
   }
 }
+
+/// Renders small rounded text labels (e.g. "3 min" on a route) into
+/// [gm.BitmapDescriptor]s. Results are cached by text and colors.
+class MapLabelIcons {
+  static final Map<String, gm.BitmapDescriptor> _cache = {};
+
+  static Future<gm.BitmapDescriptor> load({
+    required String text,
+    required Color background,
+    required Color textColor,
+    double fontSize = 14,
+  }) async {
+    final key =
+        '${text}_${background.toARGB32()}_${textColor.toARGB32()}_$fontSize';
+    final cached = _cache[key];
+    if (cached != null) return cached;
+
+    final dpr = ui.PlatformDispatcher.instance.views.first.devicePixelRatio;
+    final painter = TextPainter(textDirection: TextDirection.ltr)
+      ..text = TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      )
+      ..layout();
+
+    const hPad = 10.0, vPad = 6.0, shadowPad = 4.0;
+    final width = painter.width + hPad * 2;
+    final height = painter.height + vPad * 2;
+    final logicalW = width + shadowPad * 2;
+    final logicalH = height + shadowPad * 2;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.scale(dpr);
+
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(shadowPad, shadowPad, width, height),
+      const Radius.circular(8),
+    );
+    canvas.drawRRect(
+      rect.shift(const Offset(0, 1.5)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+    canvas.drawRRect(rect, Paint()..color = background);
+    painter.paint(canvas, Offset(shadowPad + hPad, shadowPad + vPad));
+
+    final image = await recorder.endRecording().toImage(
+      (logicalW * dpr).ceil(),
+      (logicalH * dpr).ceil(),
+    );
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    final descriptor = gm.BitmapDescriptor.bytes(
+      bytes!.buffer.asUint8List(),
+      imagePixelRatio: dpr,
+    );
+    _cache[key] = descriptor;
+    return descriptor;
+  }
+}

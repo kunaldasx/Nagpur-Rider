@@ -1692,6 +1692,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get arrivalConfirmed => 'Arrival Confirmed';
 
   @override
+  String get continueToDelivery => 'Continue to Delivery';
+
+  @override
+  String get arrivalNextStepHint =>
+      'Next: verify items and complete the delivery';
+
+  @override
+  String routeMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String get fastestRoute => 'Fastest route';
+
+  @override
+  String routeMinutesSlower(int count) {
+    return '$count min slower';
+  }
+
+  @override
+  String get tapRouteToSwitch => 'Tap a route on the map to switch';
+
+  @override
   String get haveYouReachedAddress => 'Have you reached the delivery address?';
 
   @override
@@ -2260,4 +2283,76 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get locationPermissionPermanentDescription =>
       'Location permission is permanently denied. Please enable it from app settings to continue.';
+
+  @override
+  String get todayEarnings => 'Today Earnings';
+
+  @override
+  String get codPayment => 'COD Payment';
+
+  @override
+  String get viewAll => 'View All';
+
+  @override
+  String get myOrderDetails => 'My Order Details';
+
+  @override
+  String get deliveredOrders => 'Delivered Orders';
+
+  @override
+  String get upcoming => 'Upcoming';
+
+  @override
+  String get productPrice => 'Product Price';
+
+  @override
+  String distanceKm(String distance) {
+    return 'Distance: $distance km';
+  }
+
+  @override
+  String get here => 'Here';
+
+  @override
+  String get declineOrder => 'Decline Order';
+
+  @override
+  String get orderNo => 'Order no.';
+
+  @override
+  String get orderDeliveredLabel => 'ORDER DELIVERED';
+
+  @override
+  String get orderCancelLabel => 'ORDER CANCEL';
+
+  @override
+  String get paymentModeLabel => 'Payment mode:';
+
+  @override
+  String deliveredTimeLabel(String time) {
+    return 'Delivered Time - $time';
+  }
+
+  @override
+  String get rateCustomer => 'Rate Customer';
+
+  @override
+  String get cancelByLabel => 'Cancel by:';
+
+  @override
+  String get whyLabel => 'Why?:';
+
+  @override
+  String minsShort(String minutes) {
+    return '$minutes mins';
+  }
+
+  @override
+  String get orderDeclinedHidden => 'Order removed from your list';
+
+  @override
+  String get supportNumberUnavailable => 'Support number not available';
+
+  @override
+  String get rateCustomerComingSoon => 'Customer rating will be available soon';
 }

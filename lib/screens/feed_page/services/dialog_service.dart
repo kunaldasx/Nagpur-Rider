@@ -107,53 +107,53 @@ class DialogService {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16.h),
-              Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Column(
-                  children: [
-                    CustomText(
-                      text: AppLocalizations.of(context)!.yourEarningsBreakdown,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                    ),
-                    SizedBox(height: 12.h),
-                    // Breakdown details
-                    if (order?.earnings?.breakdown != null) ...[
-                      _buildBreakdownRow(
-                        context,
-                        AppLocalizations.of(context)!.baseFee,
-                        order?.earnings?.breakdown?.baseFee,
-                      ),
-                      _buildBreakdownRow(
-                        context,
-                        AppLocalizations.of(context)!.storePickupFee,
-                        order?.earnings?.breakdown?.perStorePickupFee,
-                      ),
-                      _buildBreakdownRow(
-                        context,
-                        AppLocalizations.of(context)!.distanceFee,
-                        order?.earnings?.breakdown?.distanceBasedFee,
-                      ),
-                      _buildBreakdownRow(
-                        context,
-                        AppLocalizations.of(context)!.orderIncentive,
-                        order?.earnings?.breakdown?.perOrderIncentive,
-                      ),
-                      Divider(),
-                      _buildBreakdownRow(
-                        context,
-                        AppLocalizations.of(context)!.totalEarnings,
-                        _calculateTotalEarnings(order?.earnings?.breakdown),
-                        isTotal: true,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+              // Container(
+                // padding: EdgeInsets.all(16.w),
+                // decoration: BoxDecoration(
+                  // color: AppColors.primaryColor.withValues(alpha: 0.1),
+                  // borderRadius: BorderRadius.circular(8.r),
+                // ),
+                // child: Column(
+                  // children: [
+                    // CustomText(
+                      // text: AppLocalizations.of(context)!.yourEarningsBreakdown,
+                      // fontWeight: FontWeight.bold,
+                      // fontSize: 16.sp,
+                    // ),
+                    // SizedBox(height: 12.h),
+                    // // Breakdown details
+                    // if (order?.earnings?.breakdown != null) ...[
+                      // _buildBreakdownRow(
+                        // context,
+                        // AppLocalizations.of(context)!.baseFee,
+                        // order?.earnings?.breakdown?.baseFee,
+                      // ),
+                      // _buildBreakdownRow(
+                        // context,
+                        // AppLocalizations.of(context)!.storePickupFee,
+                        // order?.earnings?.breakdown?.perStorePickupFee,
+                      // ),
+                      // _buildBreakdownRow(
+                        // context,
+                        // AppLocalizations.of(context)!.distanceFee,
+                        // order?.earnings?.breakdown?.distanceBasedFee,
+                      // ),
+                      // _buildBreakdownRow(
+                        // context,
+                        // AppLocalizations.of(context)!.orderIncentive,
+                        // order?.earnings?.breakdown?.perOrderIncentive,
+                      // ),
+                      // Divider(),
+                      // _buildBreakdownRow(
+                        // context,
+                        // AppLocalizations.of(context)!.totalEarnings,
+                        // _calculateTotalEarnings(order?.earnings?.breakdown),
+                        // isTotal: true,
+                      // ),
+                    // ],
+                  // ],
+                // ),
+              // ),
               SizedBox(height: 16.h),
               Row(
                 children: [

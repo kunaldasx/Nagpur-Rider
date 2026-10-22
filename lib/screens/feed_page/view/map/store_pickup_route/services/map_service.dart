@@ -1,9 +1,11 @@
 import 'dart:math' show sin, cos, atan2, sqrt, pow;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:dio/dio.dart';
+import '../../../../../../config/constant.dart';
 import '../../../../../../utils/map/google_map_helpers.dart';
 import '../../../../model/available_orders.dart';
 
@@ -440,6 +442,136 @@ class MapService {
     return points;
   }
 
+  /// Fetch the driving route plus up to two alternatives from OSRM.
+  /// The first option is the fastest. Returns an empty list on failure.
+  static Future<List<RouteOption>> fetchRouteOptions(
+    LatLng from,
+    LatLng to,
+  ) async {
+    final googleOptions = await _fetchGoogleRouteOptions(from, to);
+    if (googleOptions.isNotEmpty) return googleOptions;
+    return _fetchOsrmRouteOptions(from, to);
+  }
+
+  /// Google Routes API: traffic-aware times and alternative routes.
+  /// Returns an empty list on any failure (e.g. API not enabled on the key).
+  static Future<List<RouteOption>> _fetchGoogleRouteOptions(
+    LatLng from,
+    LatLng to,
+  ) async {
+    try {
+      final isIos = defaultTargetPlatform == TargetPlatform.iOS;
+      final response = await Dio().post(
+        'https://routes.googleapis.com/directions/v2:computeRoutes',
+        data: {
+          'origin': {
+            'location': {
+              'latLng': {
+                'latitude': from.latitude,
+                'longitude': from.longitude,
+              },
+            },
+          },
+          'destination': {
+            'location': {
+              'latLng': {'latitude': to.latitude, 'longitude': to.longitude},
+            },
+          },
+          'travelMode': 'DRIVE',
+          'routingPreference': 'TRAFFIC_AWARE',
+          'computeAlternativeRoutes': true,
+          'languageCode': 'en-IN',
+          'units': 'METRIC',
+        },
+        options: Options(
+          receiveTimeout: const Duration(seconds: 8),
+          sendTimeout: const Duration(seconds: 8),
+          headers: {
+            'X-Goog-Api-Key': isIos ? MapKeys.iosMapKey : MapKeys.androidMapKey,
+            'X-Goog-FieldMask':
+                'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline',
+            if (isIos) 'X-Ios-Bundle-Identifier': 'com.nagpurmart.rider',
+            if (!isIos) 'X-Android-Package': 'com.nagpurmart.rider',
+            if (!isIos)
+              'X-Android-Cert':
+                  kReleaseMode
+                      ? MapKeys.androidCertSha1Release
+                      : MapKeys.androidCertSha1Debug,
+          },
+        ),
+      );
+
+      final routes = response.data is Map ? response.data['routes'] : null;
+      if (response.statusCode != 200 || routes is! List) return [];
+
+      final options = <RouteOption>[];
+      for (final route in routes) {
+        final encoded = route['polyline']?['encodedPolyline'];
+        if (encoded is! String) continue;
+        final points = _decodePolyline(encoded);
+        if (points.length < 2) continue;
+        // Duration comes as a string like "165s"
+        final durationText = (route['duration'] as String? ?? '0s').replaceAll(
+          's',
+          '',
+        );
+        options.add(
+          RouteOption(
+            points: points,
+            distanceMeters: (route['distanceMeters'] as num?)?.toDouble() ?? 0,
+            durationSeconds: double.tryParse(durationText) ?? 0,
+          ),
+        );
+      }
+      options.sort((a, b) => a.durationSeconds.compareTo(b.durationSeconds));
+      return options;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Free OSRM demo server: no traffic, and in practice no alternatives.
+  static Future<List<RouteOption>> _fetchOsrmRouteOptions(
+    LatLng from,
+    LatLng to,
+  ) async {
+    try {
+      final String url =
+          'https://router.project-osrm.org/route/v1/driving/'
+          '${from.longitude},${from.latitude};${to.longitude},${to.latitude}'
+          '?overview=full&geometries=polyline&alternatives=2';
+
+      final response = await Dio().get(
+        url,
+        options: Options(
+          receiveTimeout: const Duration(seconds: 5),
+          sendTimeout: const Duration(seconds: 5),
+        ),
+      );
+
+      if (response.statusCode != 200 || response.data['routes'] == null) {
+        return [];
+      }
+
+      final options = <RouteOption>[];
+      for (final route in response.data['routes'] as List) {
+        final points = _decodeGeometry(route['geometry']);
+        if (points.length < 2) continue;
+        options.add(
+          RouteOption(
+            points: points,
+            distanceMeters: (route['distance'] as num?)?.toDouble() ?? 0,
+            durationSeconds: (route['duration'] as num?)?.toDouble() ?? 0,
+          ),
+        );
+      }
+      options.sort((a, b) => a.durationSeconds.compareTo(b.durationSeconds));
+      return options;
+    } catch (e) {
+      return [];
+    }
+  }
+
   static List<LatLng> _decodeGeometry(dynamic geometry) {
     if (geometry is String) {
       return _decodePolyline(geometry);
@@ -588,4 +720,21 @@ class MapService {
     final double distance = minDistanceToPolyline(point, route);
     return distance > thresholdMeters;
   }
+}
+
+/// One drivable route between two points, as returned by OSRM.
+class RouteOption {
+  final List<LatLng> points;
+  final double distanceMeters;
+  final double durationSeconds;
+
+  const RouteOption({
+    required this.points,
+    required this.distanceMeters,
+    required this.durationSeconds,
+  });
+
+  int get durationMinutes => (durationSeconds / 60).ceil().clamp(1, 100000);
+
+  double get distanceKm => distanceMeters / 1000;
 }

@@ -1,5 +1,3 @@
-
-
 import 'package:nagpur_rider/config/constant.dart';
 
 String loginApi = '${baseUrl}login';
@@ -11,6 +9,7 @@ String availableOrdersStatusApi = '${baseUrl}orders/available';
 String myOrdersApi = '${baseUrl}orders/my';
 String acceptOrderApi = '${baseUrl}orders';
 String updateCurrentLocationApi = '${baseUrl}update-current-location';
+String updateFcmTokenApi = '${baseUrl}fcm-token';
 String itemsCollectedApi = '${baseUrl}order-items';
 String orderDetailsApi = '${baseUrl}orders';
 String getReturnOrdersApi = '${baseUrl}return-pickups/available';

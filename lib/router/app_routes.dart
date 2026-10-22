@@ -17,6 +17,7 @@ import 'package:nagpur_rider/screens/feed_page/view/map/delivery_map/pickup_rout
 import 'package:nagpur_rider/screens/feed_page/view/map/store_pickup_route/map_delivery_page.dart';
 import 'package:nagpur_rider/screens/feed_page/view/order_detail/order_details_page.dart';
 import 'package:nagpur_rider/screens/feed_page/view/pickup_order/pickup_order_details_page.dart';
+import 'package:nagpur_rider/screens/feed_page/view/rider_orders_page.dart';
 import 'package:nagpur_rider/screens/pockets/view/pockets_page.dart';
 import 'package:nagpur_rider/screens/splash_screen/splash_screen.dart';
 import 'package:nagpur_rider/utils/widgets/bottombar.dart';
@@ -360,7 +361,7 @@ class MyAppRoute {
               final tabIndex = int.tryParse(
                 state.uri.queryParameters['tab'] ?? '0',
               );
-              return platformPage(FeedPage(initialTab: tabIndex));
+              return platformPage(RiderOrdersPage(initialTab: tabIndex ?? 0));
             },
           ),
 

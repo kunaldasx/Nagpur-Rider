@@ -12,6 +12,8 @@ class OrderItemsSection extends StatelessWidget {
   final VoidCallback onToggle;
   final List<Widget> itemCards;
   final VoidCallback? onCollectAll;
+  final VoidCallback? onDeliverAll;
+  final bool isDeliveringAll;
 
   const OrderItemsSection({
     super.key,
@@ -20,6 +22,8 @@ class OrderItemsSection extends StatelessWidget {
     required this.onToggle,
     required this.itemCards,
     this.onCollectAll,
+    this.onDeliverAll,
+    this.isDeliveringAll = false,
   });
 
   @override
@@ -78,6 +82,19 @@ class OrderItemsSection extends StatelessWidget {
                       CustomButton(
                         text: AppLocalizations.of(context)!.collectAllItems,
                         onPressed: onCollectAll,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        textColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24.w,
+                          vertical: 12.h,
+                        ),
+                      ),
+                    if (onDeliverAll != null)
+                      CustomButton(
+                        width: double.infinity,
+                        text: 'Deliver All Items',
+                        isLoading: isDeliveringAll,
+                        onPressed: onDeliverAll,
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         textColor: Colors.white,
                         padding: EdgeInsets.symmetric(

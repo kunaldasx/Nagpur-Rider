@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_alert_channel_name">Incoming orders</string>
+    <string name="order_alert_fallback_channel_name">Incoming orders (backup)</string>
+    <string name="order_alert_channel_description">Rings until you accept an order assigned to you.</string>
+    <string name="order_alert_title">New order #%1$s</string>
+    <string name="order_alert_heading">New order assigned</string>
+    <string name="order_alert_accept">ACCEPT ORDER</string>
+    <string name="order_alert_checking">Checking orders…</string>
+    <string name="order_alert_waiting">Ringing · %1$s</string>
+    <string name="order_alert_pickup">Pickup</string>
+    <string name="order_alert_drop">Drop</string>
+    <string name="order_alert_distance">Distance</string>
+    <string name="order_alert_payment">Payment</string>
+    <string name="order_alert_mandatory">Assigned orders must be accepted while you are on duty.</string>
+    <plurals name="order_alert_more">
+        <item quantity="one">%d more order waiting</item>
+        <item quantity="other">%d more orders waiting</item>
+    </plurals>
+</resources>

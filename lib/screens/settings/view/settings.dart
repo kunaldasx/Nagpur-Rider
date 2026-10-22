@@ -286,17 +286,6 @@ class _MorePageState extends State<MorePage> {
                         showDivider: false,
                       ),
                       _buildSettingsOption(
-                        icon: Icons.wallet,
-                        title: AppLocalizations.of(context)!.withdrawalHistory,
-                        subtitle:
-                            AppLocalizations.of(
-                              context,
-                            )!.manageProfileInformation,
-                        isDarkTheme: isDarkTheme,
-                        onTap: () => context.push(AppRoutes.withdrawalHistory),
-                        showDivider: false,
-                      ),
-                      _buildSettingsOption(
                         icon: Icons.star,
                         title: AppLocalizations.of(context)!.feedback,
                         subtitle:

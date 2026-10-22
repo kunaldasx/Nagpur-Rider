@@ -4,4 +4,11 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application>
+        <!-- Debug only: fakes order alert FCM messages from adb. -->
+        <receiver
+            android:name=".orderalert.DebugOrderAlertReceiver"
+            android:exported="true" />
+    </application>
 </manifest>

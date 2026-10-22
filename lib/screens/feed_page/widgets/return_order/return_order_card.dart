@@ -58,30 +58,31 @@ class _ReturnOrderCardContent extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Expected earning - Same style as available order
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CustomText(
-                        text: AppLocalizations.of(context)!.earnings,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                      SizedBox(height: 2.h),
-                      CustomText(
-                        text: CurrencyFormatter.formatAmount(
-                          context,
-                          pickup.earnings?.total ?? '0',
-                        ),
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondaryColor,
-                      ),
-                    ],
-                  ),
+                  // // Expected earning - Same style as available order
+                  // Column(
+                    // crossAxisAlignment: CrossAxisAlignment.start,
+                    // children: [
+                      // CustomText(
+                        // text: AppLocalizations.of(context)!.earnings,
+                        // fontSize: 11.sp,
+                        // fontWeight: FontWeight.w500,
+                        // color: Theme.of(
+                          // context,
+                        // ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      // ),
+                      // SizedBox(height: 2.h),
+                      // CustomText(
+                        // text: CurrencyFormatter.formatAmount(
+                          // context,
+                          // pickup.earnings?.total ?? '0',
+                        // ),
+                        // fontSize: 18.sp,
+                        // fontWeight: FontWeight.bold,
+                        // color: AppColors.secondaryColor,
+                      // ),
+                    // ],
+                  // ),
+                  const SizedBox.shrink(),
                   // Status badge - Compact style
                   Container(
                     padding: EdgeInsets.symmetric(

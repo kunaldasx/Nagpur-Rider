@@ -167,41 +167,41 @@ class _DeliveryZonePageState extends State<DeliveryZonePage> {
           ),
           SizedBox(height: 24.h),
 
-          // Delivery Boy Earnings
-          _buildSectionTitle(AppLocalizations.of(context)!.yourEarnings),
-          SizedBox(height: 16.h),
+          // // Delivery Boy Earnings
+          // _buildSectionTitle(AppLocalizations.of(context)!.yourEarnings),
+          // SizedBox(height: 16.h),
 
-          _buildInfoCard(
-            title: AppLocalizations.of(context)!.baseFee,
-            value: '₹${deliveryZone.deliveryBoyBaseFee ?? 'N/A'}',
-            icon: Icons.account_balance_wallet_outlined,
-            color: Colors.green,
-          ),
-          SizedBox(height: 16.h),
+          // _buildInfoCard(
+            // title: AppLocalizations.of(context)!.baseFee,
+            // value: '₹${deliveryZone.deliveryBoyBaseFee ?? 'N/A'}',
+            // icon: Icons.account_balance_wallet_outlined,
+            // color: Colors.green,
+          // ),
+          // SizedBox(height: 16.h),
 
-          _buildInfoCard(
-            title: AppLocalizations.of(context)!.perStorePickupFee,
-            value: '₹${deliveryZone.deliveryBoyPerStorePickupFee ?? 'N/A'}',
-            icon: Icons.store_outlined,
-            color: Colors.blue,
-          ),
-          SizedBox(height: 16.h),
+          // _buildInfoCard(
+            // title: AppLocalizations.of(context)!.perStorePickupFee,
+            // value: '₹${deliveryZone.deliveryBoyPerStorePickupFee ?? 'N/A'}',
+            // icon: Icons.store_outlined,
+            // color: Colors.blue,
+          // ),
+          // SizedBox(height: 16.h),
 
-          _buildInfoCard(
-            title: AppLocalizations.of(context)!.distanceBasedFee,
-            value: '₹${deliveryZone.deliveryBoyDistanceBasedFee ?? 'N/A'}',
-            icon: Icons.route_outlined,
-            color: Colors.orange,
-          ),
-          SizedBox(height: 16.h),
+          // _buildInfoCard(
+            // title: AppLocalizations.of(context)!.distanceBasedFee,
+            // value: '₹${deliveryZone.deliveryBoyDistanceBasedFee ?? 'N/A'}',
+            // icon: Icons.route_outlined,
+            // color: Colors.orange,
+          // ),
+          // SizedBox(height: 16.h),
 
-          _buildInfoCard(
-            title: AppLocalizations.of(context)!.perOrderIncentive,
-            value: '₹${deliveryZone.deliveryBoyPerOrderIncentive ?? 'N/A'}',
-            icon: Icons.emoji_events_outlined,
-            color: Colors.purple,
-          ),
-          SizedBox(height: 24.h),
+          // _buildInfoCard(
+            // title: AppLocalizations.of(context)!.perOrderIncentive,
+            // value: '₹${deliveryZone.deliveryBoyPerOrderIncentive ?? 'N/A'}',
+            // icon: Icons.emoji_events_outlined,
+            // color: Colors.purple,
+          // ),
+          // SizedBox(height: 24.h),
 
           // Additional Information
           _buildSectionTitle(

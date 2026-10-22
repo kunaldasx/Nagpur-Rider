@@ -218,16 +218,16 @@ class _PickupOrderDetailsPageState extends State<PickupOrderDetailsPage> {
                         ),
                         SizedBox(height: 12.h),
 
-                        // Earnings
-                        ReturnEarningsDetailsSection(
-                          pickup: pickup,
-                          isExpanded: _isEarningsExpanded,
-                          onToggle:
-                              () => setState(
-                                () =>
-                                    _isEarningsExpanded = !_isEarningsExpanded,
-                              ),
-                        ),
+                        // // Earnings
+                        // ReturnEarningsDetailsSection(
+                          // pickup: pickup,
+                          // isExpanded: _isEarningsExpanded,
+                          // onToggle:
+                              // () => setState(
+                                // () =>
+                                    // _isEarningsExpanded = !_isEarningsExpanded,
+                              // ),
+                        // ),
 
                         SizedBox(height: 20.h),
 

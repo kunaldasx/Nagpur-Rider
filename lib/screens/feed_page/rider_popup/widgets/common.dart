@@ -233,6 +233,8 @@ class PopupItemRow extends StatelessWidget {
       ),
       child: Row(
         children: [
+          _ItemThumbnail(imageUrl: item.imageUrl),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,6 +269,38 @@ class PopupItemRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ItemThumbnail extends StatelessWidget {
+  final String imageUrl;
+
+  const _ItemThumbnail({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final placeholder = Icon(
+      Icons.inventory_2_outlined,
+      color: Theme.of(context).hintColor,
+    );
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: popupOutline(context)),
+        color: Theme.of(context).colorScheme.surface,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child:
+          imageUrl.isEmpty
+              ? placeholder
+              : Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => placeholder,
+              ),
     );
   }
 }

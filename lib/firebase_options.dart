@@ -53,11 +53,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAvw3X8JIkhHQfz_1RQ5IUp8Si2Xrzuymc',
-    appId: '1:437097852625:android:3579147189c3117737dff0',
-    messagingSenderId: '437097852625',
-    projectId: 'nagpurmart-86ea5',
-    databaseURL: 'https://nagpurmart-86ea5-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'nagpurmart-86ea5.firebasestorage.app',
+    apiKey: 'AIzaSyAw0colZnrEGJiu4I6pFr0ipGzmy8pbu0M',
+    appId: '1:126927320367:android:443550d24b2af9a8959dda',
+    messagingSenderId: '126927320367',
+    projectId: 'nagpurmart-505407',
+    databaseURL: 'https://nagpurmart-505407-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'nagpurmart-505407.firebasestorage.app',
   );
 }

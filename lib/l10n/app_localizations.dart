@@ -3286,6 +3286,42 @@ abstract class AppLocalizations {
   /// **'Arrival Confirmed'**
   String get arrivalConfirmed;
 
+  /// No description provided for @continueToDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to Delivery'**
+  String get continueToDelivery;
+
+  /// No description provided for @arrivalNextStepHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Next: verify items and complete the delivery'**
+  String get arrivalNextStepHint;
+
+  /// No description provided for @routeMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String routeMinutes(int count);
+
+  /// No description provided for @fastestRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Fastest route'**
+  String get fastestRoute;
+
+  /// No description provided for @routeMinutesSlower.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min slower'**
+  String routeMinutesSlower(int count);
+
+  /// No description provided for @tapRouteToSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a route on the map to switch'**
+  String get tapRouteToSwitch;
+
   /// No description provided for @haveYouReachedAddress.
   ///
   /// In en, this message translates to:
@@ -4335,6 +4371,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Location permission is permanently denied. Please enable it from app settings to continue.'**
   String get locationPermissionPermanentDescription;
+
+  /// No description provided for @todayEarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Today Earnings'**
+  String get todayEarnings;
+
+  /// No description provided for @codPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'COD Payment'**
+  String get codPayment;
+
+  /// No description provided for @viewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View All'**
+  String get viewAll;
+
+  /// No description provided for @myOrderDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'My Order Details'**
+  String get myOrderDetails;
+
+  /// No description provided for @deliveredOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered Orders'**
+  String get deliveredOrders;
+
+  /// No description provided for @upcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get upcoming;
+
+  /// No description provided for @productPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Product Price'**
+  String get productPrice;
+
+  /// No description provided for @distanceKm.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance: {distance} km'**
+  String distanceKm(String distance);
+
+  /// No description provided for @here.
+  ///
+  /// In en, this message translates to:
+  /// **'Here'**
+  String get here;
+
+  /// No description provided for @declineOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline Order'**
+  String get declineOrder;
+
+  /// No description provided for @orderNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Order no.'**
+  String get orderNo;
+
+  /// No description provided for @orderDeliveredLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ORDER DELIVERED'**
+  String get orderDeliveredLabel;
+
+  /// No description provided for @orderCancelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ORDER CANCEL'**
+  String get orderCancelLabel;
+
+  /// No description provided for @paymentModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment mode:'**
+  String get paymentModeLabel;
+
+  /// No description provided for @deliveredTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered Time - {time}'**
+  String deliveredTimeLabel(String time);
+
+  /// No description provided for @rateCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate Customer'**
+  String get rateCustomer;
+
+  /// No description provided for @cancelByLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel by:'**
+  String get cancelByLabel;
+
+  /// No description provided for @whyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Why?:'**
+  String get whyLabel;
+
+  /// No description provided for @minsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} mins'**
+  String minsShort(String minutes);
+
+  /// No description provided for @orderDeclinedHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Order removed from your list'**
+  String get orderDeclinedHidden;
+
+  /// No description provided for @supportNumberUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Support number not available'**
+  String get supportNumberUnavailable;
+
+  /// No description provided for @rateCustomerComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer rating will be available soon'**
+  String get rateCustomerComingSoon;
 }
 
 class _AppLocalizationsDelegate

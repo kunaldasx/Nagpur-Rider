@@ -37,18 +37,18 @@ class StatisticsRow extends StatelessWidget {
           ),
           SizedBox(width: 12.w),
 
-          // Total Earnings Card
-          StatisticsCard(
-            title: AppLocalizations.of(context)!.totalEarnings,
-            value: CurrencyFormatter.formatAmount(
-              context,
-              order.earnings?.total ?? '0',
-            ),
-            icon: Icons.account_balance_wallet,
-            iconBackgroundColor: Colors.green[50]!,
-            iconColor: Colors.green[600]!,
-            valueColor: Colors.green[600]!,
-          ),
+          // // Total Earnings Card
+          // StatisticsCard(
+            // title: AppLocalizations.of(context)!.totalEarnings,
+            // value: CurrencyFormatter.formatAmount(
+              // context,
+              // order.earnings?.total ?? '0',
+            // ),
+            // icon: Icons.account_balance_wallet,
+            // iconBackgroundColor: Colors.green[50]!,
+            // iconColor: Colors.green[600]!,
+            // valueColor: Colors.green[600]!,
+          // ),
         ],
       ),
     );

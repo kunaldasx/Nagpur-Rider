@@ -60,30 +60,31 @@ class _AvailableOrderCardContent extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Expected earning - More compact
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CustomText(
-                        text: AppLocalizations.of(context)!.expectedEarning,
-                        fontSize: 11.sp, // Reduced from 12.sp to 11.sp
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                      SizedBox(height: 2.h), // Reduced from 2.h to 2.h
-                      CustomText(
-                        text: CurrencyFormatter.formatAmount(
-                          context,
-                          order.earnings?.total ?? '0',
-                        ),
-                        fontSize: 18.sp, // Reduced from 20.sp to 18.sp
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondaryColor,
-                      ),
-                    ],
-                  ),
+                  // // Expected earning - More compact
+                  // Column(
+                    // crossAxisAlignment: CrossAxisAlignment.start,
+                    // children: [
+                      // CustomText(
+                        // text: AppLocalizations.of(context)!.expectedEarning,
+                        // fontSize: 11.sp, // Reduced from 12.sp to 11.sp
+                        // fontWeight: FontWeight.w500,
+                        // color: Theme.of(
+                          // context,
+                        // ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      // ),
+                      // SizedBox(height: 2.h), // Reduced from 2.h to 2.h
+                      // CustomText(
+                        // text: CurrencyFormatter.formatAmount(
+                          // context,
+                          // order.earnings?.total ?? '0',
+                        // ),
+                        // fontSize: 18.sp, // Reduced from 20.sp to 18.sp
+                        // fontWeight: FontWeight.bold,
+                        // color: AppColors.secondaryColor,
+                      // ),
+                    // ],
+                  // ),
+                  const SizedBox.shrink(),
                   // Distance - More compact
                   if (order.deliveryRoute?.totalDistance != null)
                     Container(
@@ -150,7 +151,7 @@ class _AvailableOrderCardContent extends StatelessWidget {
                       if (order.deliveryRoute?.routeDetails != null &&
                           order.deliveryRoute!.routeDetails!.isNotEmpty)
                         GestureDetector(
-                          onTap: () => _showRouteOnMap(context, order),
+                          onTap: () => showOrderRouteOnMap(context, order),
                           child: Container(
                             padding: EdgeInsets.all(
                               4.w,
@@ -290,7 +291,7 @@ class _AvailableOrderCardContent extends StatelessWidget {
               child: BlocConsumer<AcceptOrderBloc, AcceptOrderState>(
                 listener: (context, state) {
                   if (state is AcceptOrderSuccess) {
-                    _afterAccept(context, order);
+                    afterOrderAccepted(context, order);
                   } else if (state is AcceptOrderCompleted) {
                     // Refresh the available orders list when order is completed
                     context.read<AvailableOrdersBloc>().add(
@@ -380,103 +381,103 @@ class _AvailableOrderCardContent extends StatelessWidget {
           .toUpperCase();
     }
   }
+}
 
-  // Navigation method for map delivery page
-  /// Orders packed in a seller bag go to the bag scan popup first; the
-  /// rider continues to the map from there. Others go straight to the map.
-  Future<void> _afterAccept(BuildContext context, Orders order) async {
-    final cubit = context.read<RiderPopupCubit>();
-    final opened = await cubit.openAccepted(order.id!);
-    if (!opened && context.mounted) _navigateToMapDeliveryPage(context, order);
-  }
+// Navigation method for map delivery page
+/// Orders packed in a seller bag go to the bag scan popup first; the
+/// rider continues to the map from there. Others go straight to the map.
+Future<void> afterOrderAccepted(BuildContext context, Orders order) async {
+  final cubit = context.read<RiderPopupCubit>();
+  final opened = await cubit.openAccepted(order.id!);
+  if (!opened && context.mounted) navigateToMapDeliveryPage(context, order);
+}
 
-  Future<void> _navigateToMapDeliveryPage(
-    BuildContext context,
-    Orders order,
-  ) async {
-    // Check for store pickup coordinates first, then fallback to delivery coordinates
-    bool hasValidCoordinates = false;
-    String? destinationLat;
-    String? destinationLng;
+Future<void> navigateToMapDeliveryPage(
+  BuildContext context,
+  Orders order,
+) async {
+  // Check for store pickup coordinates first, then fallback to delivery coordinates
+  bool hasValidCoordinates = false;
+  String? destinationLat;
+  String? destinationLng;
 
-    if (order.deliveryRoute?.routeDetails != null &&
-        order.deliveryRoute!.routeDetails!.isNotEmpty) {
-      final storeLocation = order.deliveryRoute!.routeDetails!.first;
-      hasValidCoordinates =
-          storeLocation.latitude != null && storeLocation.longitude != null;
-      if (hasValidCoordinates) {
-        destinationLat = storeLocation.latitude.toString();
-        destinationLng = storeLocation.longitude.toString();
-      }
-    }
-
-    // If no store coordinates, try delivery coordinates
-    if (!hasValidCoordinates) {
-      hasValidCoordinates =
-          order.shippingLatitude != null && order.shippingLongitude != null;
-      if (hasValidCoordinates) {
-        destinationLat = order.shippingLatitude.toString();
-        destinationLng = order.shippingLongitude.toString();
-      }
-    }
-
-    if (hasValidCoordinates &&
-        destinationLat != null &&
-        destinationLng != null) {
-      try {
-        // Navigate to map delivery page
-        context.push(
-          AppRoutes.mapDelivery,
-          extra: {
-            'order': order,
-            'currentLat': destinationLat,
-            'currentLng': destinationLng,
-          },
-        );
-      } catch (e) {
-        ToastManager.show(
-          context: context,
-          message: AppLocalizations.of(context)!.navigationError(e.toString()),
-          type: ToastType.error,
-        );
-      }
-    } else {
-      ToastManager.show(
-        context: context,
-        message:
-            AppLocalizations.of(context)!.storePickupCoordinatesNotAvailable,
-        type: ToastType.error,
-      );
+  if (order.deliveryRoute?.routeDetails != null &&
+      order.deliveryRoute!.routeDetails!.isNotEmpty) {
+    final storeLocation = order.deliveryRoute!.routeDetails!.first;
+    hasValidCoordinates =
+        storeLocation.latitude != null && storeLocation.longitude != null;
+    if (hasValidCoordinates) {
+      destinationLat = storeLocation.latitude.toString();
+      destinationLng = storeLocation.longitude.toString();
     }
   }
 
-  // Method to show route on map
-  void _showRouteOnMap(BuildContext context, Orders order) {
-    if (order.deliveryRoute?.routeDetails != null &&
-        order.deliveryRoute!.routeDetails!.isNotEmpty) {
-      try {
-        // Navigate to pickup route map page
-        context.push(
-          AppRoutes.pickupRouteMap,
-          extra: {
-            'order': order,
-            // Note: bloc parameter is optional, so we don't need to pass it
-          },
-        );
-      } catch (e) {
-        ToastManager.show(
-          context: context,
-          message: AppLocalizations.of(context)!.navigationError(e.toString()),
-          type: ToastType.error,
-        );
-      }
-    } else {
+  // If no store coordinates, try delivery coordinates
+  if (!hasValidCoordinates) {
+    hasValidCoordinates =
+        order.shippingLatitude != null && order.shippingLongitude != null;
+    if (hasValidCoordinates) {
+      destinationLat = order.shippingLatitude.toString();
+      destinationLng = order.shippingLongitude.toString();
+    }
+  }
+
+  if (hasValidCoordinates &&
+      destinationLat != null &&
+      destinationLng != null) {
+    try {
+      // Navigate to map delivery page
+      context.push(
+        AppRoutes.mapDelivery,
+        extra: {
+          'order': order,
+          'currentLat': destinationLat,
+          'currentLng': destinationLng,
+        },
+      );
+    } catch (e) {
       ToastManager.show(
         context: context,
-        message:
-            AppLocalizations.of(context)!.routeDetailsNotAvailableForMapView,
+        message: AppLocalizations.of(context)!.navigationError(e.toString()),
         type: ToastType.error,
       );
     }
+  } else {
+    ToastManager.show(
+      context: context,
+      message:
+          AppLocalizations.of(context)!.storePickupCoordinatesNotAvailable,
+      type: ToastType.error,
+    );
+  }
+}
+
+// Method to show route on map
+void showOrderRouteOnMap(BuildContext context, Orders order) {
+  if (order.deliveryRoute?.routeDetails != null &&
+      order.deliveryRoute!.routeDetails!.isNotEmpty) {
+    try {
+      // Navigate to pickup route map page
+      context.push(
+        AppRoutes.pickupRouteMap,
+        extra: {
+          'order': order,
+          // Note: bloc parameter is optional, so we don't need to pass it
+        },
+      );
+    } catch (e) {
+      ToastManager.show(
+        context: context,
+        message: AppLocalizations.of(context)!.navigationError(e.toString()),
+        type: ToastType.error,
+      );
+    }
+  } else {
+    ToastManager.show(
+      context: context,
+      message:
+          AppLocalizations.of(context)!.routeDetailsNotAvailableForMapView,
+      type: ToastType.error,
+    );
   }
 }

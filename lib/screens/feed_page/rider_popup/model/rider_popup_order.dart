@@ -156,6 +156,7 @@ class RiderPopupItem extends Equatable {
   final double subtotal;
   final String storeName;
   final String storeContact;
+  final String imageUrl;
 
   const RiderPopupItem({
     required this.id,
@@ -166,6 +167,7 @@ class RiderPopupItem extends Equatable {
     this.subtotal = 0,
     this.storeName = '',
     this.storeContact = '',
+    this.imageUrl = '',
   });
 
   static RiderPopupItem? tryParse(dynamic json) {
@@ -174,6 +176,7 @@ class RiderPopupItem extends Equatable {
     if (map == null || id == null) return null;
     final store = _map(map['store']) ?? const {};
     final product = _map(map['product']) ?? const {};
+    final variant = _map(map['variant']) ?? const {};
     return RiderPopupItem(
       id: id,
       productName: [
@@ -190,6 +193,11 @@ class RiderPopupItem extends Equatable {
       subtotal: _double(map['subtotal']),
       storeName: _str(store['name']),
       storeContact: _str(store['contact_number']),
+      imageUrl: [
+        _str(variant['image']),
+        _str(product['image']),
+        _str(map['image']),
+      ].firstWhere((s) => s.isNotEmpty, orElse: () => ''),
     );
   }
 

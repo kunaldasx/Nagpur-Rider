@@ -148,78 +148,78 @@ class _PocketsPageState extends State<PocketsPage> {
       builder: (context, statusState) {
         return Column(
           children: [
-            // Earnings Card
-            GestureDetector(
-              onTap: () {
-                context.push('/earnings');
-              },
-              child: CustomCard(
-                padding: EdgeInsets.all(20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CustomText(
-                          text: _getCurrentWeekRange(),
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16.sp,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12.h),
-                    BlocBuilder<EarningsBloc, EarningsState>(
-                      builder: (context, state) {
-                        if (state is EarningsStatsLoaded) {
-                          return CustomText(
-                            text: CurrencyFormatter.formatAmount(
-                              context,
-                              '${state.response.data?.totalEarnings ?? 0}',
-                            ),
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.bold,
-                          );
-                        }
-                        return CustomText(
-                          text: CurrencyFormatter.formatAmount(context, '0'),
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.bold,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // // Earnings Card
+            // GestureDetector(
+              // onTap: () {
+                // context.push('/earnings');
+              // },
+              // child: CustomCard(
+                // padding: EdgeInsets.all(20.w),
+                // child: Column(
+                  // crossAxisAlignment: CrossAxisAlignment.start,
+                  // children: [
+                    // Row(
+                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // children: [
+                        // CustomText(
+                          // text: _getCurrentWeekRange(),
+                          // fontSize: 14.sp,
+                          // fontWeight: FontWeight.w600,
+                        // ),
+                        // Icon(
+                          // Icons.arrow_forward_ios,
+                          // size: 16.sp,
+                          // color: Theme.of(
+                            // context,
+                          // ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        // ),
+                      // ],
+                    // ),
+                    // SizedBox(height: 12.h),
+                    // BlocBuilder<EarningsBloc, EarningsState>(
+                      // builder: (context, state) {
+                        // if (state is EarningsStatsLoaded) {
+                          // return CustomText(
+                            // text: CurrencyFormatter.formatAmount(
+                              // context,
+                              // '${state.response.data?.totalEarnings ?? 0}',
+                            // ),
+                            // fontSize: 20.sp,
+                            // fontWeight: FontWeight.bold,
+                          // );
+                        // }
+                        // return CustomText(
+                          // text: CurrencyFormatter.formatAmount(context, '0'),
+                          // fontSize: 20.sp,
+                          // fontWeight: FontWeight.bold,
+                        // );
+                      // },
+                    // ),
+                  // ],
+                // ),
+              // ),
+            // ),
 
-            // Earnings Statistics
-            SizedBox(height: 16.h),
+            // // Earnings Statistics
+            // SizedBox(height: 16.h),
 
-            // Earnings Statistics Section
-            BlocBuilder<EarningsBloc, EarningsState>(
-              builder: (context, state) {
-                if (state is EarningsStatsLoaded &&
-                    state.response.data != null) {
-                  return _buildEarningsStats(state.response.data!);
-                } else if (state is EarningsError) {
-                  return _buildEarningsErrorState(state.message);
-                } else if (state is EarningsLoading) {
-                  return const Center(child: CupertinoActivityIndicator());
-                } else {
-                  return const SizedBox.shrink();
-                }
-              },
-            ),
+            // // Earnings Statistics Section
+            // BlocBuilder<EarningsBloc, EarningsState>(
+              // builder: (context, state) {
+                // if (state is EarningsStatsLoaded &&
+                    // state.response.data != null) {
+                  // return _buildEarningsStats(state.response.data!);
+                // } else if (state is EarningsError) {
+                  // return _buildEarningsErrorState(state.message);
+                // } else if (state is EarningsLoading) {
+                  // return const Center(child: CupertinoActivityIndicator());
+                // } else {
+                  // return const SizedBox.shrink();
+                // }
+              // },
+            // ),
 
-            SizedBox(height: 16.h),
+            // SizedBox(height: 16.h),
 
             BlocBuilder<ProfileBloc, ProfileState>(
               builder: (context, state) {

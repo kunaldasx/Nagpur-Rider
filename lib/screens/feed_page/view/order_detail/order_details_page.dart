@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:confetti/confetti.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart' as loc;
+import '../../../../utils/location_handler.dart';
 import '../../../../config/colors.dart';
 import '../../../../utils/currency_formatter.dart';
 import '../../../../utils/widgets/custom_text.dart';
@@ -17,6 +20,9 @@ import '../../../system_settings/bloc/system_settings_event.dart';
 import '../../../system_settings/bloc/system_settings_state.dart';
 import '../../../system_settings/repo/system_settings_repo.dart';
 import '../../model/available_orders.dart';
+import '../../model/cod_payment.dart';
+import '../../repo/cod_payment_repo.dart';
+import '../../widgets/orderdetails_widgets/cod_payment_sheet.dart';
 import '../../bloc/items_collected_bloc/items_collected_bloc.dart';
 import '../../bloc/items_collected_bloc/items_collected_event.dart';
 import '../../bloc/items_collected_bloc/items_collected_state.dart';
@@ -109,9 +115,9 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
   bool _isPaymentExpanded = false;
   bool _isEarningsExpanded = false;
   bool _isPricingExpanded = false;
-  bool _codPopupShown = false;
   final Set<String> _processingItemIds = {};
   bool _isCollectingAll = false;
+  bool _isDeliveringAll = false;
 
   // Confetti controller for celebration animation
   late ConfettiController _confettiController;
@@ -325,7 +331,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
                 : AppLocalizations.of(context)!.itemCollectedSuccessfully;
 
             // Only show individual toasts if not collecting all, or show one consolidated one later
-            if (!_isCollectingAll) {
+            if (!_isCollectingAll && !_isDeliveringAll) {
               ToastManager.show(
                 context: context,
                 message: successMessage,
@@ -529,6 +535,11 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
                                 ?.map((item) => _buildItemCard(item))
                                 .toList() ??
                             [],
+                        onDeliverAll:
+                            _useDeliverAll()
+                                ? (_isDeliveringAll ? () {} : _deliverAllItems)
+                                : null,
+                        isDeliveringAll: _isDeliveringAll,
                         onCollectAll:
                             (!widget.from &&
                                     order.status?.toLowerCase() == 'assigned' &&
@@ -537,17 +548,17 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
                                 : null,
                       ),
                       SizedBox(height: 16.h),
-                      // Earnings Details Section
-                      new_widgets.EarningsDetailsSection(
-                        order: order,
-                        isExpanded: _isEarningsExpanded,
-                        onToggle: () {
-                          setState(() {
-                            _isEarningsExpanded = !_isEarningsExpanded;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 16.h),
+                      // // Earnings Details Section
+                      // new_widgets.EarningsDetailsSection(
+                        // order: order,
+                        // isExpanded: _isEarningsExpanded,
+                        // onToggle: () {
+                          // setState(() {
+                            // _isEarningsExpanded = !_isEarningsExpanded;
+                          // });
+                        // },
+                      // ),
+                      // SizedBox(height: 16.h),
 
                       // Payment Method Section
                       new_widgets.PaymentInformationSection(
@@ -730,9 +741,6 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
 
   void _showCodPopup() {
     DialogService.showCodPopup(context, _fetchedOrder);
-    setState(() {
-      _codPopupShown = true;
-    });
   }
 
   void _showCongratulationsGif() {
@@ -754,6 +762,100 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
     return false;
   }
 
+  /// Riders may only mark items delivered when they are within
+  /// [_deliveryRangeMeters] of the customer's shipping location.
+  static const double _deliveryRangeMeters = 100;
+  bool _checkingDeliveryRange = false;
+
+  Future<bool> _ensureNearDeliveryLocation() async {
+    if (_checkingDeliveryRange) return false;
+    final order = _fetchedOrder;
+    final destLat = double.tryParse(order?.shippingLatitude ?? '');
+    final destLng = double.tryParse(order?.shippingLongitude ?? '');
+    // No coordinates on the order: nothing to verify against.
+    if (destLat == null || destLng == null) return true;
+
+    _checkingDeliveryRange = true;
+    try {
+      final position = await _getCurrentPosition();
+      if (!mounted) return false;
+      if (position == null) {
+        ToastManager.show(
+          context: context,
+          message:
+              'Unable to get your current location. Turn on GPS and try again.',
+          type: ToastType.error,
+        );
+        return false;
+      }
+
+      final distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        destLat,
+        destLng,
+      );
+      if (distance <= _deliveryRangeMeters) return true;
+
+      final away =
+          distance >= 1000
+              ? '${(distance / 1000).toStringAsFixed(1)} km'
+              : '${distance.round()} m';
+      ToastManager.show(
+        context: context,
+        message:
+            'You must be within ${_deliveryRangeMeters.round()} m of the '
+            'delivery location to deliver. You are $away away.',
+        type: ToastType.warning,
+      );
+      return false;
+    } finally {
+      _checkingDeliveryRange = false;
+    }
+  }
+
+  Future<Position?> _getCurrentPosition() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        // Native "turn on location" popup (Android); fall back to a dialog
+        // that opens location settings if the rider declines or on iOS.
+        final enabled = await loc.Location().requestService();
+        if (!enabled) {
+          LocationHandler.showLocationServiceDialog();
+          return null;
+        }
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        LocationHandler.showPermissionDeniedDialog(
+          isPermanent: permission == LocationPermission.deniedForever,
+        );
+        return null;
+      }
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+    } catch (_) {
+      // Fall back to a recent fix if a fresh one times out.
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null &&
+            DateTime.now().difference(last.timestamp) <
+                const Duration(minutes: 1)) {
+          return last;
+        }
+      } catch (_) {}
+      return null;
+    }
+  }
+
   void _collectItem(Items item) {
     if (!_ensureBagScanned()) return;
     // Collect the item directly (no OTP required)
@@ -770,8 +872,130 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
     }
   }
 
+  /// For COD orders, asks the rider how the customer paid (cash or UPI QR)
+  /// before the final delivery. Returns `null` if delivery must not proceed,
+  /// otherwise whether cash was collected (sent with the delivery request).
+  Future<bool?> _collectCodPaymentIfNeeded(Items item) async {
+    if (!_hasCodItems() || item.id == null) return false;
+    final itemId = item.id.toString();
+
+    setState(() => _processingItemIds.add(itemId));
+    CodPaymentInstructions instructions;
+    try {
+      instructions = await CodPaymentRepo().getPaymentInstructions(itemId);
+    } catch (e) {
+      if (!mounted) return null;
+      setState(() => _processingItemIds.remove(itemId));
+      ToastManager.show(
+        context: context,
+        message: e.toString(),
+        type: ToastType.error,
+      );
+      return null;
+    }
+    if (!mounted) return null;
+    setState(() => _processingItemIds.remove(itemId));
+
+    // Non-COD or already paid (e.g. UPI confirmed for an earlier item).
+    if (!instructions.required || instructions.isCompleted) return false;
+
+    final outcome = await CodPaymentSheet.show(
+      context,
+      orderItemId: itemId,
+      instructions: instructions,
+    );
+    if (outcome == null) return null;
+    return outcome == CodPaymentOutcome.cash;
+  }
+
+  /// Collected items that are waiting for the final delivery.
+  List<Items> _pendingDeliveryItems() {
+    final order = _fetchedOrder;
+    if (order?.items == null) return [];
+    final outForDelivery = order!.status?.toLowerCase() == 'out_for_delivery';
+    return order.items!.where((item) {
+      if (item.id == null) return false;
+      final id = item.id.toString();
+      final status = item.status?.toLowerCase();
+      final delivered = status == 'delivered' || _deliveredItems.contains(id);
+      final collected = status == 'collected' || _collectedItems.contains(id);
+      return collected &&
+          !delivered &&
+          (outForDelivery || item.reachedDestination == true);
+    }).toList();
+  }
+
+  /// With more than one item to deliver, a single "Deliver All" button
+  /// replaces the per-item buttons.
+  bool _useDeliverAll() =>
+      _isDeliveringAll || _pendingDeliveryItems().length > 1;
+
+  Future<void> _deliverAllItems() async {
+    final pending = _pendingDeliveryItems();
+    if (pending.isEmpty) return;
+    if (!await _ensureNearDeliveryLocation() || !mounted) return;
+
+    // One COD payment covers the whole order.
+    final cashCollected = await _collectCodPaymentIfNeeded(pending.first);
+    if (cashCollected == null || !mounted) return;
+
+    bool needsOtp(Items item) =>
+        item.product?.requiresOtp == 1 && item.otpVerified != 1;
+
+    String? otp;
+    if (pending.any(needsOtp)) {
+      otp = await DialogService.showDeliveryOtpDialog(context);
+      if (otp == null || otp.isEmpty || !mounted) return;
+    }
+
+    setState(() => _isDeliveringAll = true);
+    final bloc = context.read<ItemsCollectedBloc>();
+    var allDelivered = true;
+
+    // Sequential, so the cash collection is committed with the first item
+    // before the remaining items are marked delivered.
+    for (var i = 0; i < pending.length; i++) {
+      final itemId = pending[i].id.toString();
+      final cash = cashCollected && i == 0;
+      setState(() => _processingItemIds.add(itemId));
+
+      final result = bloc.stream.firstWhere(
+        (state) =>
+            (state is ItemsCollectedSuccess && state.itemId == itemId) ||
+            (state is ItemsCollectedError && state.itemId == itemId),
+      );
+      bloc.add(
+        needsOtp(pending[i])
+            ? ItemsCollectedWithOtp(
+              orderItemId: itemId,
+              otp: otp!,
+              cashCollected: cash,
+            )
+            : ItemsDelivered(itemId, cashCollected: cash),
+      );
+      if (await result is ItemsCollectedError) {
+        allDelivered = false;
+        break;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _isDeliveringAll = false);
+    if (allDelivered) {
+      ToastManager.show(
+        context: context,
+        message: AppLocalizations.of(context)!.allItemsDeliveredSuccessfully,
+        type: ToastType.success,
+      );
+    }
+  }
+
   void _deliverItemWithoutOtp(Items item) async {
     if (item.id != null) {
+      if (!await _ensureNearDeliveryLocation() || !mounted) return;
+      final cashCollected = await _collectCodPaymentIfNeeded(item);
+      if (cashCollected == null || !mounted) return;
+
       // Set the current processing item ID for tracking
       setState(() {
         _processingItemIds.add(item.id.toString());
@@ -782,13 +1006,17 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
 
       // Dispatch the API call to mark item as delivered
       context.read<ItemsCollectedBloc>().add(
-        ItemsDelivered(item.id.toString()),
+        ItemsDelivered(item.id.toString(), cashCollected: cashCollected),
       );
     }
   }
 
   void _deliverItem(Items item) async {
     if (item.id != null) {
+      if (!await _ensureNearDeliveryLocation() || !mounted) return;
+      final cashCollected = await _collectCodPaymentIfNeeded(item);
+      if (cashCollected == null || !mounted) return;
+
       // Show OTP dialog for delivery
       final String? otp = await _showDeliveryOtpDialog();
 
@@ -800,7 +1028,11 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
 
         // Dispatch the API call - UI updates will be handled in BlocConsumer
         context.read<ItemsCollectedBloc>().add(
-          ItemsCollectedWithOtp(orderItemId: item.id.toString(), otp: otp),
+          ItemsCollectedWithOtp(
+            orderItemId: item.id.toString(),
+            otp: otp,
+            cashCollected: cashCollected,
+          ),
         );
       }
     }
@@ -828,6 +1060,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
       onDelivered: () => _deliverItemWithoutOtp(item),
       onReachedDestination: () => _markItemReachedDestination(item),
       onItemOtpTap: _showItemOtpDialog,
+      hideDeliverButton: _useDeliverAll(),
     );
   }
 
@@ -839,6 +1072,12 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
       return;
     }
 
+    if (!await _ensureNearDeliveryLocation() || !mounted) return;
+
+    // Settle COD payment (cash / UPI QR) before asking for the delivery OTP
+    final cashCollected = await _collectCodPaymentIfNeeded(item);
+    if (cashCollected == null || !mounted) return;
+
     // Show simplified OTP dialog
     final String? otp = await DialogService.showDeliveryOtpDialog(context);
 
@@ -847,13 +1086,12 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
         _processingItemIds.add(item.id.toString());
       });
 
-      // Show COD popup if payment method is COD and popup hasn't been shown yet
-      if (widget.from && _hasCodItems() && !_codPopupShown) {
-        _showCodPopup();
-      }
-
       context.read<ItemsCollectedBloc>().add(
-        ItemsCollectedWithOtp(orderItemId: item.id.toString(), otp: otp),
+        ItemsCollectedWithOtp(
+          orderItemId: item.id.toString(),
+          otp: otp,
+          cashCollected: cashCollected,
+        ),
       );
     }
   }
@@ -918,63 +1156,63 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
                 color: Colors.grey,
               ),
               SizedBox(height: 16.h),
-              Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Column(
-                  children: [
-                    CustomText(
-                      text: AppLocalizations.of(context)!.yourEarningsBreakdown,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                    ),
-                    SizedBox(height: 12.h),
-                    // Breakdown details
-                    if (_fetchedOrder?.earnings?.breakdown != null) ...[
-                      _buildBreakdownRow(
-                        AppLocalizations.of(context)!.baseFee,
-                        _fetchedOrder?.earnings?.breakdown?.baseFee,
-                      ),
-                      _buildBreakdownRow(
-                        AppLocalizations.of(context)!.storePickupFee,
-                        _fetchedOrder?.earnings?.breakdown?.perStorePickupFee,
-                      ),
-                      _buildBreakdownRow(
-                        AppLocalizations.of(context)!.distanceFee,
-                        _fetchedOrder?.earnings?.breakdown?.distanceBasedFee,
-                      ),
-                      _buildBreakdownRow(
-                        AppLocalizations.of(context)!.orderIncentive,
-                        _fetchedOrder?.earnings?.breakdown?.perOrderIncentive,
-                      ),
-                      const Divider(height: 16, thickness: 1),
-                    ],
-                    // Total
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CustomText(
-                          text: AppLocalizations.of(context)!.totalEarnings,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        CustomText(
-                          text: CurrencyFormatter.formatAmount(
-                            context,
-                            _fetchedOrder?.earnings?.total ?? 0,
-                          ),
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryColor,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              // Container(
+                // padding: EdgeInsets.all(16.w),
+                // decoration: BoxDecoration(
+                  // color: AppColors.primaryColor.withValues(alpha: 0.1),
+                  // borderRadius: BorderRadius.circular(8.r),
+                // ),
+                // child: Column(
+                  // children: [
+                    // CustomText(
+                      // text: AppLocalizations.of(context)!.yourEarningsBreakdown,
+                      // fontWeight: FontWeight.bold,
+                      // fontSize: 16.sp,
+                    // ),
+                    // SizedBox(height: 12.h),
+                    // // Breakdown details
+                    // if (_fetchedOrder?.earnings?.breakdown != null) ...[
+                      // _buildBreakdownRow(
+                        // AppLocalizations.of(context)!.baseFee,
+                        // _fetchedOrder?.earnings?.breakdown?.baseFee,
+                      // ),
+                      // _buildBreakdownRow(
+                        // AppLocalizations.of(context)!.storePickupFee,
+                        // _fetchedOrder?.earnings?.breakdown?.perStorePickupFee,
+                      // ),
+                      // _buildBreakdownRow(
+                        // AppLocalizations.of(context)!.distanceFee,
+                        // _fetchedOrder?.earnings?.breakdown?.distanceBasedFee,
+                      // ),
+                      // _buildBreakdownRow(
+                        // AppLocalizations.of(context)!.orderIncentive,
+                        // _fetchedOrder?.earnings?.breakdown?.perOrderIncentive,
+                      // ),
+                      // const Divider(height: 16, thickness: 1),
+                    // ],
+                    // // Total
+                    // Row(
+                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // children: [
+                        // CustomText(
+                          // text: AppLocalizations.of(context)!.totalEarnings,
+                          // fontWeight: FontWeight.bold,
+                          // fontSize: 16,
+                        // ),
+                        // CustomText(
+                          // text: CurrencyFormatter.formatAmount(
+                            // context,
+                            // _fetchedOrder?.earnings?.total ?? 0,
+                          // ),
+                          // fontSize: 20.sp,
+                          // fontWeight: FontWeight.w600,
+                          // color: AppColors.primaryColor,
+                        // ),
+                      // ],
+                    // ),
+                  // ],
+                // ),
+              // ),
               SizedBox(height: 24.h),
               Row(
                 children: [
@@ -1041,9 +1279,9 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
     );
   }
 
-  Widget _buildBreakdownRow(String label, double? amount) {
-    return UIHelperService.buildBreakdownRow(context, label, amount);
-  }
+  // Widget _buildBreakdownRow(String label, double? amount) {
+    // return UIHelperService.buildBreakdownRow(context, label, amount);
+  // }
 
   String _getStatusText() {
     return OrderService.getStatusText(

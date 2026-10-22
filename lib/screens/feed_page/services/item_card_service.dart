@@ -19,6 +19,7 @@ class ItemCardService {
     required VoidCallback onDelivered,
     required VoidCallback onReachedDestination,
     required Function(Items) onItemOtpTap,
+    bool hideDeliverButton = false,
   }) {
     return BlocConsumer<ItemsCollectedBloc, ItemsCollectedState>(
       listener: (context, state) {
@@ -48,12 +49,13 @@ class ItemCardService {
             orderStatus: fetchedOrder?.status,
             isOtpVerified: item.otpVerified == 1,
             onTap:
-                (isCollected && requiresOtp && !isDelivered)
+                (isCollected && requiresOtp && !isDelivered && !hideDeliverButton)
                     ? () => onItemOtpTap(item)
                     : null,
             onCollect: onCollect,
             onDelivered: onDelivered,
             onReachedDestination: onReachedDestination,
+            hideDeliverButton: hideDeliverButton,
           ),
         );
       },

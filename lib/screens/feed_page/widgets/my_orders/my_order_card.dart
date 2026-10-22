@@ -153,29 +153,29 @@ class MyOrderCard extends StatelessWidget {
 
               SizedBox(height: 16.h),
 
-              // Earnings
-              if (order.earnings?.total != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText(
-                      text: AppLocalizations.of(context)!.earnings,
-                      fontSize: 12.sp,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                    CustomText(
-                      text: CurrencyFormatter.formatAmount(
-                        context,
-                        order.earnings!.total,
-                      ),
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryColor,
-                    ),
-                  ],
-                ),
+              // // Earnings
+              // if (order.earnings?.total != null)
+                // Column(
+                  // crossAxisAlignment: CrossAxisAlignment.start,
+                  // children: [
+                    // CustomText(
+                      // text: AppLocalizations.of(context)!.earnings,
+                      // fontSize: 12.sp,
+                      // color: Theme.of(
+                        // context,
+                      // ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    // ),
+                    // CustomText(
+                      // text: CurrencyFormatter.formatAmount(
+                        // context,
+                        // order.earnings!.total,
+                      // ),
+                      // fontSize: 18.sp,
+                      // fontWeight: FontWeight.bold,
+                      // color: AppColors.primaryColor,
+                    // ),
+                  // ],
+                // ),
             ],
           ),
         ),

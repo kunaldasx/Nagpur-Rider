@@ -79,7 +79,7 @@ class ShippingDetailsSection extends StatelessWidget {
                   _buildDetailRow(
                     context,
                     AppLocalizations.of(context)!.address,
-                    '${order.shippingAddress1 ?? ''}${order.shippingAddress2 != null ? ', ${order.shippingAddress2}' : ''}',
+                    _formatAddress(),
                   ),
                 ],
               ),
@@ -90,11 +90,19 @@ class ShippingDetailsSection extends StatelessWidget {
     );
   }
 
+  String _formatAddress() {
+    final parts = [order.shippingAddress1, order.shippingAddress2]
+        .map((part) => part?.trim() ?? '')
+        .where((part) => part.isNotEmpty)
+        .toList();
+    return parts.isEmpty ? 'N/A' : parts.join(', ');
+  }
+
   Widget _buildDetailRow(BuildContext context, String label, String value) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CustomText(
             text: label,
@@ -103,6 +111,7 @@ class ShippingDetailsSection extends StatelessWidget {
               context,
             ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
+          SizedBox(width: 24.w),
           Expanded(
             child: CustomText(
               text: value,

@@ -1723,6 +1723,30 @@ class AppLocalizationsFr extends AppLocalizations {
   String get arrivalConfirmed => 'Arrivée confirmée';
 
   @override
+  String get continueToDelivery => 'Continuer la livraison';
+
+  @override
+  String get arrivalNextStepHint =>
+      'Étape suivante : vérifiez les articles et terminez la livraison';
+
+  @override
+  String routeMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String get fastestRoute => 'Itinéraire le plus rapide';
+
+  @override
+  String routeMinutesSlower(int count) {
+    return '$count min de plus';
+  }
+
+  @override
+  String get tapRouteToSwitch =>
+      'Touchez un itinéraire sur la carte pour changer';
+
+  @override
   String get haveYouReachedAddress =>
       'Avez-vous atteint l\'adresse de livraison ?';
 
@@ -2301,4 +2325,76 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get locationPermissionPermanentDescription =>
       'L\'autorisation de localisation est définitivement refusée. Veuillez l\'activer dans les paramètres de l\'application pour continuer.';
+
+  @override
+  String get todayEarnings => 'Today Earnings';
+
+  @override
+  String get codPayment => 'COD Payment';
+
+  @override
+  String get viewAll => 'View All';
+
+  @override
+  String get myOrderDetails => 'My Order Details';
+
+  @override
+  String get deliveredOrders => 'Delivered Orders';
+
+  @override
+  String get upcoming => 'Upcoming';
+
+  @override
+  String get productPrice => 'Product Price';
+
+  @override
+  String distanceKm(String distance) {
+    return 'Distance: $distance km';
+  }
+
+  @override
+  String get here => 'Here';
+
+  @override
+  String get declineOrder => 'Decline Order';
+
+  @override
+  String get orderNo => 'Order no.';
+
+  @override
+  String get orderDeliveredLabel => 'ORDER DELIVERED';
+
+  @override
+  String get orderCancelLabel => 'ORDER CANCEL';
+
+  @override
+  String get paymentModeLabel => 'Payment mode:';
+
+  @override
+  String deliveredTimeLabel(String time) {
+    return 'Delivered Time - $time';
+  }
+
+  @override
+  String get rateCustomer => 'Rate Customer';
+
+  @override
+  String get cancelByLabel => 'Cancel by:';
+
+  @override
+  String get whyLabel => 'Why?:';
+
+  @override
+  String minsShort(String minutes) {
+    return '$minutes mins';
+  }
+
+  @override
+  String get orderDeclinedHidden => 'Order removed from your list';
+
+  @override
+  String get supportNumberUnavailable => 'Support number not available';
+
+  @override
+  String get rateCustomerComingSoon => 'Customer rating will be available soon';
 }

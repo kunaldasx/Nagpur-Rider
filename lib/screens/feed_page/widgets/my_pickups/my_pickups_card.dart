@@ -327,25 +327,25 @@ class _MyPickupsCardContent extends StatelessWidget {
 
               SizedBox(height: 16.h),
 
-              // Earnings
-              CustomText(
-                text: AppLocalizations.of(context)!.earnings,
-                fontSize: 12.sp,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              CustomText(
-                text: CurrencyFormatter.formatAmount(
-                  context,
-                  pickup.earnings?.total,
-                ),
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryColor,
-              ),
+              // // Earnings
+              // CustomText(
+                // text: AppLocalizations.of(context)!.earnings,
+                // fontSize: 12.sp,
+                // color: Theme.of(
+                  // context,
+                // ).colorScheme.onSurface.withValues(alpha: 0.6),
+              // ),
+              // CustomText(
+                // text: CurrencyFormatter.formatAmount(
+                  // context,
+                  // pickup.earnings?.total,
+                // ),
+                // fontSize: 18.sp,
+                // fontWeight: FontWeight.bold,
+                // color: AppColors.primaryColor,
+              // ),
 
-              SizedBox(height: 16.h),
+              // SizedBox(height: 16.h),
 
               // Update Button or Success Message
               if (!isDelivered)

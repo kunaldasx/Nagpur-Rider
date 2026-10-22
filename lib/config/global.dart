@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:nagpur_rider/utils/services/order_alert_bridge.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -25,6 +26,7 @@ class Global {
     final box = await _userBox;
     await box.put(_tokenKey, token);
     _cachedToken = token;
+    await OrderAlertBridge.setLoggedIn(token.trim().isNotEmpty);
   }
 
   static Future<void> refreshCachedToken() async {
@@ -62,6 +64,8 @@ class Global {
     final box = await _userBox;
     await box.delete(_tokenKey);
     _cachedToken = null;
+    // Stops any ringing order alert, and no alert rings until the next login.
+    await OrderAlertBridge.setLoggedIn(false);
   }
 
   // Firebase ID Token management

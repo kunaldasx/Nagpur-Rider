@@ -24,6 +24,10 @@ class ItemCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onReachedDestination;
 
+  /// When several items are pending delivery, the order page shows a single
+  /// "Deliver All" button instead of one button per item.
+  final bool hideDeliverButton;
+
   const ItemCard({
     super.key,
     required this.item,
@@ -37,7 +41,44 @@ class ItemCard extends StatelessWidget {
     this.onDelivered,
     this.onTap,
     this.onReachedDestination,
+    this.hideDeliverButton = false,
   });
+
+  Widget _buildDeliverAction(BuildContext context, bool shouldOpenOtpDialog) {
+    if (hideDeliverButton) {
+      return Column(
+        children: [
+          Icon(Icons.inventory_2_outlined, color: Colors.orange, size: 24.sp),
+          SizedBox(height: 4.h),
+          CustomText(
+            text: 'Ready',
+            fontSize: 12.sp,
+            color: Colors.orange,
+            fontWeight: FontWeight.w500,
+          ),
+        ],
+      );
+    }
+    return CustomButton(
+      width: 100.w,
+      height: 40.h,
+      textSize: 15.sp,
+      text: AppLocalizations.of(context)!.deliver,
+      onPressed: () {
+        // If OTP dialog should open, call onTap (which opens OTP dialog), otherwise call onDelivered
+        if (shouldOpenOtpDialog) {
+          onTap?.call();
+        } else {
+          onDelivered?.call();
+        }
+      },
+      backgroundColor: AppColors.primaryColor,
+      textColor: Colors.white,
+      borderRadius: 8.r,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      textStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,92 +249,20 @@ class ItemCard extends StatelessWidget {
                         isCollected &&
                         !isDelivered) ...[
                       // Show "Deliver" button when item has reached destination (highest priority)
-                      CustomButton(
-                        width: 100.w,
-                        height: 40.h,
-                        textSize: 15.sp,
-                        text: AppLocalizations.of(context)!.deliver,
-                        onPressed: () {
-                          // If OTP dialog should open, call onTap (which opens OTP dialog), otherwise call onDelivered
-                          if (shouldOpenOtpDialog) {
-                            onTap?.call();
-                          } else {
-                            onDelivered?.call();
-                          }
-                        },
-                        backgroundColor: AppColors.primaryColor,
-                        textColor: Colors.white,
-                        borderRadius: 8.r,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 8.h,
-                        ),
-                        textStyle: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      _buildDeliverAction(context, shouldOpenOtpDialog),
                     ] else if (orderStatus?.toLowerCase() ==
                             'out_for_delivery' &&
                         item.status?.toLowerCase() == 'collected' &&
                         !isOtpVerified) ...[
                       // Show "Deliver" button when order status is "out_for_delivery" and item status is "collected"
-                      CustomButton(
-                        width: 100.w,
-                        height: 40.h,
-                        textSize: 15.sp,
-                        text: AppLocalizations.of(context)!.deliver,
-                        onPressed: () {
-                          // If OTP dialog should open, call onTap (which opens OTP dialog), otherwise call onDelivered
-                          if (shouldOpenOtpDialog) {
-                            onTap?.call();
-                          } else {
-                            onDelivered?.call();
-                          }
-                        },
-                        backgroundColor: AppColors.primaryColor,
-                        textColor: Colors.white,
-                        borderRadius: 8.r,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 8.h,
-                        ),
-                        textStyle: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      _buildDeliverAction(context, shouldOpenOtpDialog),
                     ] else if (isCollected) ...[
                       // Show tick mark and "Collected" text when item is collected (for collection mode or assigned orders)
                       // BUT if order status is "out_for_delivery", show "Deliver" button instead
                       if (orderStatus?.toLowerCase() == 'out_for_delivery' ||
                           item.reachedDestination == true) ...[
                         // Show "Deliver" button when reached destination and item is collected
-                        CustomButton(
-                          width: 100.w,
-                          height: 40.h,
-                          textSize: 15.sp,
-                          text: AppLocalizations.of(context)!.deliver,
-                          onPressed: () {
-                            // If OTP dialog should open, call onTap (which opens OTP dialog), otherwise call onDelivered
-                            if (shouldOpenOtpDialog) {
-                              onTap?.call();
-                            } else {
-                              onDelivered?.call();
-                            }
-                          },
-                          backgroundColor: AppColors.primaryColor,
-                          textColor: Colors.white,
-                          borderRadius: 8.r,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 8.h,
-                          ),
-                          textStyle: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        _buildDeliverAction(context, shouldOpenOtpDialog),
                       ] else ...[
                         // Show "Collected" tickmark when item is collected but has not reached destination and not out for delivery
                         Column(
@@ -324,31 +293,7 @@ class ItemCard extends StatelessWidget {
                                   'out_for_delivery' ||
                               item.reachedDestination == true) ...[
                             // Show "Deliver" button when reached destination and item is collected
-                            CustomButton(
-                              width: 100.w,
-                              height: 40.h,
-                              textSize: 15.sp,
-                              text: AppLocalizations.of(context)!.deliver,
-                              onPressed: () {
-                                // If OTP dialog should open, call onTap (which opens OTP dialog), otherwise call onDelivered
-                                if (shouldOpenOtpDialog) {
-                                  onTap?.call();
-                                } else {
-                                  onDelivered?.call();
-                                }
-                              },
-                              backgroundColor: AppColors.primaryColor,
-                              textColor: Colors.white,
-                              borderRadius: 8.r,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16.w,
-                                vertical: 8.h,
-                              ),
-                              textStyle: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            _buildDeliverAction(context, shouldOpenOtpDialog),
                           ] else ...[
                             // Show tick mark and "Collected" text for other cases
                             Column(

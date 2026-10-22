@@ -1,7 +1,11 @@
 import 'dart:developer';
 import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:nagpur_rider/config/api_base_helper.dart';
+import 'package:nagpur_rider/config/api_routes.dart';
+import 'package:nagpur_rider/config/global.dart';
 import 'package:nagpur_rider/router/app_routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +19,12 @@ class NotificationManager {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+
+  /// A token belongs to one Firebase project, so the cache is keyed by the
+  /// project's sender id: after the app moves to another project it fetches
+  /// a fresh token instead of reusing one the new project rejects.
+  static String get _cachedTokenKey =>
+      'fcm_token_${Firebase.app().options.messagingSenderId}';
 
   Future<void> initialize() async {
     if (_initialized) {
@@ -175,7 +185,7 @@ class NotificationManager {
   //     if (token != null && token.isNotEmpty) {
   //       // Save to SharedPreferences
   //       final prefs = await SharedPreferences.getInstance();
-  //       await prefs.setString('fcm_token', token);
+  //       await prefs.setString(_cachedTokenKey, token);
   //       log('✅ FCM Token saved to SharedPreferences');
   //     } else {
   //       log('⚠️ FCM Token is null or empty');
@@ -203,7 +213,7 @@ class NotificationManager {
         if (quickToken != null && quickToken.isNotEmpty) {
           log('🚀 Quick FCM Token retrieved (Simulator/Cached): $quickToken');
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('fcm_token', quickToken);
+          await prefs.setString(_cachedTokenKey, quickToken);
           // We still continue to get APNs token for real devices, but we have a success already.
         }
       } catch (e) {
@@ -242,13 +252,16 @@ class NotificationManager {
 
       if (fcmToken != null && fcmToken.isNotEmpty) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('fcm_token', fcmToken);
+        await prefs.setString(_cachedTokenKey, fcmToken);
         log('✅ FCM Token saved to SharedPreferences');
       }
 
-      _firebaseMessaging.onTokenRefresh.listen((newToken) {
+      _firebaseMessaging.onTokenRefresh.listen((newToken) async {
         log('🔄 FCM Token refreshed: $newToken');
-        _saveTokenToPrefs(newToken);
+        await _saveTokenToPrefs(newToken);
+        await Global.setFCMToken(newToken);
+        // Order alerts are pushed to this token: the backend must have it.
+        await syncTokenWithBackend(newToken);
       });
     } catch (e) {
       log('❌ Error retrieving tokens: $e');
@@ -260,7 +273,7 @@ class NotificationManager {
       log('🔍 getFCMToken() called...');
 
       final prefs = await SharedPreferences.getInstance();
-      String? cachedToken = prefs.getString('fcm_token');
+      String? cachedToken = prefs.getString(_cachedTokenKey);
 
       if (cachedToken != null && cachedToken.isNotEmpty) {
         log('📦 Returning CACHED FCM TOKEN');
@@ -272,7 +285,7 @@ class NotificationManager {
       log('🔑 Firebase returned token: $token');
 
       if (token != null && token.isNotEmpty) {
-        await prefs.setString('fcm_token', token);
+        await prefs.setString(_cachedTokenKey, token);
         return token;
       }
 
@@ -283,10 +296,34 @@ class NotificationManager {
     }
   }
 
+  /// Sends this device's FCM token to the backend, which pushes order
+  /// alerts to it. The login request only carries the token from login
+  /// time; Firebase can change it later. Does nothing when logged out.
+  Future<void> syncTokenWithBackend([String? token]) async {
+    if ((Global.userToken ?? '').trim().isEmpty) return;
+    try {
+      token ??= await getFCMToken();
+      if (token == null || token.isEmpty) return;
+      final response = await ApiBaseHelper.post(
+        url: updateFcmTokenApi,
+        useAuthToken: true,
+        body: {
+          'fcm_token': token,
+          'platform': Platform.isAndroid ? 'android' : 'ios',
+        },
+      );
+      log(
+        '🔑 FCM token sync: ${response['success'] == true ? 'ok' : response['message']}',
+      );
+    } catch (e) {
+      log('❌ FCM token sync failed: $e');
+    }
+  }
+
   Future<void> _saveTokenToPrefs(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('fcm_token', token);
+      await prefs.setString(_cachedTokenKey, token);
       log('✅ Token saved: $token');
     } catch (e) {
       log('❌ Error saving token: $e');
@@ -354,7 +391,7 @@ class NotificationManager {
     try {
       switch (type) {
         case 'wallet_transaction':
-          MyAppRoute.router.push(AppRoutes.allEarnings);
+          // MyAppRoute.router.push(AppRoutes.allEarnings);
           break;
         case 'withdrawal_request':
         case 'withdrawal_process':
@@ -362,7 +399,7 @@ class NotificationManager {
           break;
         case 'settlement_process':
         case 'settlement_create':
-          MyAppRoute.router.push(AppRoutes.earnings);
+          // MyAppRoute.router.push(AppRoutes.earnings);
           break;
         case 'order_ready_for_pickup':
         case 'delivery':
@@ -399,7 +436,7 @@ class NotificationManager {
     try {
       await _firebaseMessaging.deleteToken();
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('fcm_token');
+      await prefs.remove(_cachedTokenKey);
       log('✅ FCM token deleted');
     } catch (e) {
       log('❌ Error deleting token: $e');
