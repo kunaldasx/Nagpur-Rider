@@ -15,8 +15,8 @@ import '../bloc/auth_bloc/auth_event.dart';
 import '../bloc/auth_bloc/auth_state.dart';
 
 /// Shown after an email/password login creates a seller approval request.
-/// The rider asks the seller to approve, then taps "Check again", which
-/// re-sends the same login from memory and receives the token once approved.
+/// Checks approval every six seconds, or when the rider taps "Check again",
+/// by re-sending the same login from memory until the seller approves it.
 class LoginApprovalPendingPage extends StatefulWidget {
   const LoginApprovalPendingPage({super.key});
 
@@ -26,19 +26,41 @@ class LoginApprovalPendingPage extends StatefulWidget {
 }
 
 class _LoginApprovalPendingPageState extends State<LoginApprovalPendingPage> {
+  Timer? _autoCheckTimer;
   Timer? _retryCooldown;
   int _cooldownSeconds = 0;
+  bool _isAutomaticCheck = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoCheckTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      final lifecycleState = WidgetsBinding.instance.lifecycleState;
+      if (lifecycleState != null &&
+          lifecycleState != AppLifecycleState.resumed) {
+        return;
+      }
+      _checkAgain(automatic: true);
+    });
+  }
 
   @override
   void dispose() {
+    _autoCheckTimer?.cancel();
     _retryCooldown?.cancel();
     super.dispose();
   }
 
-  void _checkAgain() {
+  void _checkAgain({bool automatic = false}) {
     final bloc = context.read<AuthBloc>();
-    if (_cooldownSeconds > 0 || bloc.state is AuthLoading) return;
+    if (!bloc.hasPendingLogin ||
+        _cooldownSeconds > 0 ||
+        bloc.state is AuthLoading) {
+      return;
+    }
 
+    _isAutomaticCheck = automatic;
     setState(() => _cooldownSeconds = 5);
     _retryCooldown = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() => _cooldownSeconds--);
@@ -48,6 +70,7 @@ class _LoginApprovalPendingPageState extends State<LoginApprovalPendingPage> {
   }
 
   void _backToLogin(BuildContext context) {
+    _autoCheckTimer?.cancel();
     context.read<AuthBloc>().add(CancelPendingLoginRequest());
     GoRouter.of(context).go(AppRoutes.login);
   }
@@ -62,15 +85,19 @@ class _LoginApprovalPendingPageState extends State<LoginApprovalPendingPage> {
       child: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
+            _autoCheckTimer?.cancel();
             ToastManager.show(context: context, message: state.message);
             GoRouter.of(context).go(AppRoutes.dashboard);
           } else if (state is AuthPendingApproval) {
-            ToastManager.show(context: context, message: state.message);
+            if (!_isAutomaticCheck) {
+              ToastManager.show(context: context, message: state.message);
+            }
           } else if (state is AuthFailure) {
             ToastManager.show(context: context, message: state.error);
             // A network error keeps the request retryable; anything the
             // backend rejected (e.g. seller declined) sends the rider back.
             if (!context.read<AuthBloc>().hasPendingLogin) {
+              _autoCheckTimer?.cancel();
               GoRouter.of(context).go(AppRoutes.login);
             }
           }
@@ -143,7 +170,7 @@ class _LoginApprovalPendingPageState extends State<LoginApprovalPendingPage> {
                     SizedBox(height: 12.h),
                     CustomText(
                       text:
-                          'Ask your seller to approve your login, then tap "Check again".',
+                          'Ask your seller to approve your login. We check automatically every 6 seconds, or you can tap "Check again".',
                       fontSize: 14.sp,
                       color: Colors.grey,
                       textAlign: TextAlign.center,
