@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -15,8 +17,35 @@ import '../bloc/auth_bloc/auth_state.dart';
 /// Shown after an email/password login creates a seller approval request.
 /// The rider asks the seller to approve, then taps "Check again", which
 /// re-sends the same login from memory and receives the token once approved.
-class LoginApprovalPendingPage extends StatelessWidget {
+class LoginApprovalPendingPage extends StatefulWidget {
   const LoginApprovalPendingPage({super.key});
+
+  @override
+  State<LoginApprovalPendingPage> createState() =>
+      _LoginApprovalPendingPageState();
+}
+
+class _LoginApprovalPendingPageState extends State<LoginApprovalPendingPage> {
+  Timer? _retryCooldown;
+  int _cooldownSeconds = 0;
+
+  @override
+  void dispose() {
+    _retryCooldown?.cancel();
+    super.dispose();
+  }
+
+  void _checkAgain() {
+    final bloc = context.read<AuthBloc>();
+    if (_cooldownSeconds > 0 || bloc.state is AuthLoading) return;
+
+    setState(() => _cooldownSeconds = 5);
+    _retryCooldown = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() => _cooldownSeconds--);
+      if (_cooldownSeconds == 0) timer.cancel();
+    });
+    bloc.add(RetryPendingLoginRequest());
+  }
 
   void _backToLogin(BuildContext context) {
     context.read<AuthBloc>().add(CancelPendingLoginRequest());
@@ -46,8 +75,11 @@ class LoginApprovalPendingPage extends StatelessWidget {
             }
           }
         },
-        buildWhen: (_, current) =>
-            current is AuthPendingApproval || current is AuthLoading,
+        buildWhen:
+            (_, current) =>
+                current is AuthPendingApproval ||
+                current is AuthLoading ||
+                current is AuthFailure,
         builder: (context, state) {
           final isLoading = state is AuthLoading;
           final pending = state is AuthPendingApproval ? state : null;
@@ -119,14 +151,14 @@ class LoginApprovalPendingPage extends StatelessWidget {
                     SizedBox(height: 32.h),
                     Center(
                       child: CustomButton(
-                        text: 'Check again',
+                        text:
+                            _cooldownSeconds > 0
+                                ? 'Check again (${_cooldownSeconds}s)'
+                                : 'Check again',
                         textSize: 15.sp,
                         width: 240,
                         isLoading: isLoading,
-                        onPressed:
-                            () => context.read<AuthBloc>().add(
-                              RetryPendingLoginRequest(),
-                            ),
+                        onPressed: _cooldownSeconds > 0 ? null : _checkAgain,
                       ),
                     ),
                     SizedBox(height: 12.h),
