@@ -117,8 +117,8 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
   void _setFallbackLocation() {
     setState(() {
       // Use shipping address coordinates as fallback location
-      double fallbackLat = 23.2488453; // Default Bhuj coordinates
-      double fallbackLng = 69.6696795;
+      double fallbackLat = 21.1458; // Default Nagpur coordinates
+      double fallbackLng = 79.0882;
 
       if (widget.order.deliveryRoute?.routeDetails != null &&
           widget.order.deliveryRoute!.routeDetails!.isNotEmpty) {
@@ -489,7 +489,7 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
                     final center = _getDestinationLocation();
                     return _isValidLatLng(center)
                         ? center
-                        : const LatLng(23.2488453, 69.6696795);
+                        : const LatLng(21.1458, 79.0882);
                   })(),
               polylines: _buildRoutePolylines(),
               markers: _buildAllMarkers(),

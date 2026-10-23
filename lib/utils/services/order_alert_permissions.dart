@@ -32,6 +32,7 @@ class OrderAlertPermissions {
     return [
       if (!await Permission.notification.isGranted) _Item.notifications,
       if (!await OrderAlertBridge.canUseFullScreenIntent()) _Item.fullScreen,
+      if (!await Permission.systemAlertWindow.isGranted) _Item.openOverApps,
       if (!await Permission.ignoreBatteryOptimizations.isGranted) _Item.battery,
       if (await OrderAlertBridge.isAlarmMuted()) _Item.alarmVolume,
     ];
@@ -49,6 +50,12 @@ enum _Item {
     Icons.screen_lock_portrait_outlined,
     'Show over lock screen',
     'Shows the new order on the screen while your phone is locked.',
+    'Allow',
+  ),
+  openOverApps(
+    Icons.open_in_new_rounded,
+    'Display over other apps',
+    'Opens the new order by itself while you use your phone or another app.',
     'Allow',
   ),
   battery(
@@ -79,6 +86,10 @@ enum _Item {
         break;
       case _Item.fullScreen:
         await OrderAlertBridge.openFullScreenIntentSettings();
+        break;
+      case _Item.openOverApps:
+        // Opens the system "Display over other apps" page for this app.
+        await Permission.systemAlertWindow.request();
         break;
       case _Item.battery:
         await Permission.ignoreBatteryOptimizations.request();

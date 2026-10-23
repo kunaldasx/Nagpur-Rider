@@ -78,6 +78,28 @@ class OrderAlertService : Service() {
             }
             Log.i(TAG, "Ringing for order ${alert.orderId}")
             start(context)
+            openIncomingScreen(context)
+        }
+
+        /**
+         * Opens the order screen over whatever the rider is doing. Android 10+
+         * blocks this from the background unless the rider granted "Display
+         * over other apps"; without it the locked-screen full-screen intent
+         * and the heads-up notification still show the order.
+         */
+        private fun openIncomingScreen(context: Context) {
+            if (!Settings.canDrawOverlays(context)) {
+                Log.i(TAG, "No \"Display over other apps\" permission, notification only")
+                return
+            }
+            try {
+                context.startActivity(
+                    Intent(context, IncomingOrderActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Couldn't open the order screen", e)
+            }
         }
 
         /**

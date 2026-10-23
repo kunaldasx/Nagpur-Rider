@@ -28,8 +28,8 @@ import 'package:nagpur_rider/l10n/app_localizations.dart';
 Future<void> openGoogleMapsDirections({
   required String destinationLat,
   required String destinationLng,
-  String originLat = '23.2488453',
-  String originLng = '69.6696795',
+  String originLat = '21.1458',
+  String originLng = '79.0882',
 }) async {
   try {
     final url = Uri.parse(

@@ -2362,4 +2362,51 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get rateCustomerComingSoon => 'Customer rating will be available soon';
+
+  @override
+  String get startNavigation => 'શરૂ કરો';
+
+  @override
+  String get routeSteps => 'પગલાં';
+
+  @override
+  String get exitNavigation => 'નેવિગેશન બંધ કરો';
+
+  @override
+  String get recenter => 'ફરી કેન્દ્રિત કરો';
+
+  @override
+  String get thenLabel => 'પછી';
+
+  @override
+  String get arriveAtDestination => 'ગંતવ્ય પર પહોંચો';
+
+  @override
+  String get openInGoogleMaps => 'Google Maps માં ખોલો';
+
+  @override
+  String get kmPerHour => 'કિમી/કલાક';
+
+  @override
+  String get waitingForGps => 'GPS સિગ્નલની રાહ';
+
+  @override
+  String toDestination(String address) {
+    return '$address સુધી';
+  }
+
+  @override
+  String get youHaveArrived => 'તમે પહોંચી ગયા';
+
+  @override
+  String get muteVoice => 'અવાજ બંધ કરો';
+
+  @override
+  String get unmuteVoice => 'અવાજ ચાલુ કરો';
+
+  @override
+  String get routeOverview => 'માર્ગનું અવલોકન';
+
+  @override
+  String get customerPhoneUnavailable => 'ગ્રાહકનો ફોન નંબર ઉપલબ્ધ નથી';
 }

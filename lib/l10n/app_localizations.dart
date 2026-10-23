@@ -4503,6 +4503,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Customer rating will be available soon'**
   String get rateCustomerComingSoon;
+
+  /// No description provided for @startNavigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get startNavigation;
+
+  /// No description provided for @routeSteps.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get routeSteps;
+
+  /// No description provided for @exitNavigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit navigation'**
+  String get exitNavigation;
+
+  /// No description provided for @recenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-centre'**
+  String get recenter;
+
+  /// No description provided for @thenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Then'**
+  String get thenLabel;
+
+  /// No description provided for @arriveAtDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrive at destination'**
+  String get arriveAtDestination;
+
+  /// No description provided for @openInGoogleMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Google Maps'**
+  String get openInGoogleMaps;
+
+  /// No description provided for @kmPerHour.
+  ///
+  /// In en, this message translates to:
+  /// **'km/h'**
+  String get kmPerHour;
+
+  /// No description provided for @waitingForGps.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for GPS signal'**
+  String get waitingForGps;
+
+  /// No description provided for @toDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'To {address}'**
+  String toDestination(String address);
+
+  /// No description provided for @youHaveArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve arrived'**
+  String get youHaveArrived;
+
+  /// No description provided for @muteVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute voice'**
+  String get muteVoice;
+
+  /// No description provided for @unmuteVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute voice'**
+  String get unmuteVoice;
+
+  /// No description provided for @routeOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Route overview'**
+  String get routeOverview;
+
+  /// No description provided for @customerPhoneUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer phone number not available'**
+  String get customerPhoneUnavailable;
 }
 
 class _AppLocalizationsDelegate

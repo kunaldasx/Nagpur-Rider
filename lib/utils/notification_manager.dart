@@ -309,6 +309,8 @@ class NotificationManager {
         useAuthToken: true,
         body: {
           'fcm_token': token,
+          // The backend reads `device_type`; `platform` is kept from the spec.
+          'device_type': Platform.isAndroid ? 'android' : 'ios',
           'platform': Platform.isAndroid ? 'android' : 'ios',
         },
       );

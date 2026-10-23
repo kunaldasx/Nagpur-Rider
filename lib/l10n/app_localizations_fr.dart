@@ -2397,4 +2397,51 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get rateCustomerComingSoon => 'Customer rating will be available soon';
+
+  @override
+  String get startNavigation => 'Démarrer';
+
+  @override
+  String get routeSteps => 'Étapes';
+
+  @override
+  String get exitNavigation => 'Quitter la navigation';
+
+  @override
+  String get recenter => 'Recentrer';
+
+  @override
+  String get thenLabel => 'Puis';
+
+  @override
+  String get arriveAtDestination => 'Arrivée à destination';
+
+  @override
+  String get openInGoogleMaps => 'Ouvrir dans Google Maps';
+
+  @override
+  String get kmPerHour => 'km/h';
+
+  @override
+  String get waitingForGps => 'En attente du signal GPS';
+
+  @override
+  String toDestination(String address) {
+    return 'Vers $address';
+  }
+
+  @override
+  String get youHaveArrived => 'Vous êtes arrivé';
+
+  @override
+  String get muteVoice => 'Couper la voix';
+
+  @override
+  String get unmuteVoice => 'Activer la voix';
+
+  @override
+  String get routeOverview => 'Vue d\'ensemble';
+
+  @override
+  String get customerPhoneUnavailable => 'Numéro du client indisponible';
 }

@@ -659,7 +659,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
     // Check if order status is delivered first - this should take priority
     if (_fetchedOrder?.status?.toLowerCase() == 'delivered') {
       return ActionBottomSheet(
-        buttonText: AppLocalizations.of(context)!.allDone,
+        buttonText: AppLocalizations.of(context)!.delivered,
         onPressed: () => _showEarningsPopup(),
         buttonColor: AppColors.primaryColor,
         textColor: Colors.white,
@@ -706,10 +706,10 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
       );
     }
 
-    // Simple Case 2: If reachedDestination is true AND all items are delivered → Show "All Done"
+    // Simple Case 2: If reachedDestination is true AND all items are delivered → Show "Delivered"
     if (anyItemsReachedDestination && allItemsDelivered) {
       return ActionBottomSheet(
-        buttonText: AppLocalizations.of(context)!.allDone,
+        buttonText: AppLocalizations.of(context)!.delivered,
         onPressed: _showEarningsPopup,
         buttonColor: AppColors.primaryColor,
         textColor: Colors.white,

@@ -2376,4 +2376,51 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get rateCustomerComingSoon => 'Customer rating will be available soon';
+
+  @override
+  String get startNavigation => 'ప్రారంభించు';
+
+  @override
+  String get routeSteps => 'దశలు';
+
+  @override
+  String get exitNavigation => 'నావిగేషన్ నుండి నిష్క్రమించు';
+
+  @override
+  String get recenter => 'మళ్లీ మధ్యలో ఉంచు';
+
+  @override
+  String get thenLabel => 'తర్వాత';
+
+  @override
+  String get arriveAtDestination => 'గమ్యస్థానానికి చేరుకోండి';
+
+  @override
+  String get openInGoogleMaps => 'Google Mapsలో తెరవండి';
+
+  @override
+  String get kmPerHour => 'కి.మీ/గం';
+
+  @override
+  String get waitingForGps => 'GPS సిగ్నల్ కోసం వేచి ఉంది';
+
+  @override
+  String toDestination(String address) {
+    return '$address కి';
+  }
+
+  @override
+  String get youHaveArrived => 'మీరు చేరుకున్నారు';
+
+  @override
+  String get muteVoice => 'వాయిస్ ఆపు';
+
+  @override
+  String get unmuteVoice => 'వాయిస్ ఆన్ చేయి';
+
+  @override
+  String get routeOverview => 'మార్గం అవలోకనం';
+
+  @override
+  String get customerPhoneUnavailable => 'కస్టమర్ ఫోన్ నంబర్ అందుబాటులో లేదు';
 }

@@ -116,8 +116,8 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
   void _setFallbackLocation() {
     setState(() {
       // Use customer location from delivery route as fallback
-      double fallbackLat = 23.2488453; // Default Bhuj coordinates
-      double fallbackLng = 69.6696795;
+      double fallbackLat = 21.1458; // Default Nagpur coordinates
+      double fallbackLng = 79.0882;
 
       if (widget.pickup.deliveryRoute?.routeDetails != null &&
           widget.pickup.deliveryRoute!.routeDetails!.isNotEmpty) {
@@ -218,7 +218,7 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
         !_currentLocation!.longitude!.isInfinite) {
       return LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!);
     }
-    return const LatLng(23.2488453, 69.6696795);
+    return const LatLng(21.1458, 79.0882);
   }
 
   static const double _markerSize = 45;
@@ -451,7 +451,7 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
                       final center = _getCurrentLocationLatLng();
                       return _isValidLatLng(center)
                           ? center
-                          : const LatLng(23.2488453, 69.6696795);
+                          : const LatLng(21.1458, 79.0882);
                     })(),
                   ),
                   zoom: 15,
@@ -613,7 +613,7 @@ class _PickupOrderMapPageState extends State<PickupOrderMapPage> {
                       final currentLat = currentLocation.latitude.toString();
                       final currentLng = currentLocation.longitude.toString();
 
-                      String destinationAddress = 'Bhuj, Gujarat, India';
+                      String destinationAddress = 'Nagpur, Maharashtra, India';
 
                       // Choose destination based on current stage
                       if (widget.pickup.deliveryRoute?.routeDetails != null &&

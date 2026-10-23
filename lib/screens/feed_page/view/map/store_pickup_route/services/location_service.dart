@@ -68,8 +68,8 @@ class LocationService {
 
   /// Get destination location from route details
   static LatLng getDestinationLocation(List<dynamic>? routeDetails) {
-    double fallbackLat = 23.2488453;
-    double fallbackLng = 69.6696795;
+    double fallbackLat = 21.1458;
+    double fallbackLng = 79.0882;
 
     if (routeDetails != null && routeDetails.isNotEmpty) {
       final lastIndex = routeDetails.length - 1;

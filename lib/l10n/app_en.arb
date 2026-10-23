@@ -791,5 +791,27 @@
   },
   "orderDeclinedHidden": "Order removed from your list",
   "supportNumberUnavailable": "Support number not available",
-  "rateCustomerComingSoon": "Customer rating will be available soon"
+  "rateCustomerComingSoon": "Customer rating will be available soon",
+  "startNavigation": "Start",
+  "routeSteps": "Steps",
+  "exitNavigation": "Exit navigation",
+  "recenter": "Re-centre",
+  "thenLabel": "Then",
+  "arriveAtDestination": "Arrive at destination",
+  "openInGoogleMaps": "Open in Google Maps",
+  "kmPerHour": "km/h",
+  "waitingForGps": "Waiting for GPS signal",
+  "toDestination": "To {address}",
+  "youHaveArrived": "You've arrived",
+  "muteVoice": "Mute voice",
+  "unmuteVoice": "Unmute voice",
+  "routeOverview": "Route overview",
+  "customerPhoneUnavailable": "Customer phone number not available",
+  "@toDestination": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  }
 }

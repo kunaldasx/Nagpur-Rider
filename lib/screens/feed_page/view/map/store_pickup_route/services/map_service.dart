@@ -489,7 +489,10 @@ class MapService {
           headers: {
             'X-Goog-Api-Key': isIos ? MapKeys.iosMapKey : MapKeys.androidMapKey,
             'X-Goog-FieldMask':
-                'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline',
+                'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,'
+                'routes.legs.steps.distanceMeters,routes.legs.steps.staticDuration,'
+                'routes.legs.steps.polyline.encodedPolyline,'
+                'routes.legs.steps.navigationInstruction',
             if (isIos) 'X-Ios-Bundle-Identifier': 'com.nagpurmart.rider',
             if (!isIos) 'X-Android-Package': 'com.nagpurmart.rider',
             if (!isIos)
@@ -520,6 +523,7 @@ class MapService {
             points: points,
             distanceMeters: (route['distanceMeters'] as num?)?.toDouble() ?? 0,
             durationSeconds: double.tryParse(durationText) ?? 0,
+            steps: _parseGoogleSteps(route['legs']),
           ),
         );
       }
@@ -539,7 +543,7 @@ class MapService {
       final String url =
           'https://router.project-osrm.org/route/v1/driving/'
           '${from.longitude},${from.latitude};${to.longitude},${to.latitude}'
-          '?overview=full&geometries=polyline&alternatives=2';
+          '?overview=full&geometries=polyline&alternatives=2&steps=true';
 
       final response = await Dio().get(
         url,
@@ -562,6 +566,7 @@ class MapService {
             points: points,
             distanceMeters: (route['distance'] as num?)?.toDouble() ?? 0,
             durationSeconds: (route['duration'] as num?)?.toDouble() ?? 0,
+            steps: _parseOsrmSteps(route['legs']),
           ),
         );
       }
@@ -569,6 +574,132 @@ class MapService {
       return options;
     } catch (e) {
       return [];
+    }
+  }
+
+  // Turn-by-turn steps from a Google Routes API route. Each step's
+  // instruction describes the maneuver at the start of that step.
+  static List<NavStep> _parseGoogleSteps(dynamic legs) {
+    if (legs is! List) return const [];
+    final steps = <NavStep>[];
+    for (final leg in legs) {
+      final legSteps = leg is Map ? leg['steps'] : null;
+      if (legSteps is! List) continue;
+      for (final step in legSteps) {
+        if (step is! Map) continue;
+        final encoded = step['polyline']?['encodedPolyline'];
+        final points =
+            encoded is String ? _decodePolyline(encoded) : <LatLng>[];
+        if (points.length < 2) continue;
+        final instruction = step['navigationInstruction'];
+        final durationText = (step['staticDuration'] as String? ?? '0s')
+            .replaceAll('s', '');
+        steps.add(
+          NavStep(
+            instruction:
+                (instruction is Map ? instruction['instructions'] : null)
+                    as String? ??
+                '',
+            maneuver:
+                (instruction is Map ? instruction['maneuver'] : null)
+                    as String? ??
+                'STRAIGHT',
+            distanceMeters: (step['distanceMeters'] as num?)?.toDouble() ?? 0,
+            durationSeconds: double.tryParse(durationText) ?? 0,
+            points: points,
+          ),
+        );
+      }
+    }
+    return steps;
+  }
+
+  // Turn-by-turn steps from an OSRM route, mapped onto Google's maneuver
+  // names so the UI only deals with one set. The final "arrive" step is
+  // dropped: the navigator adds its own arrival step.
+  static List<NavStep> _parseOsrmSteps(dynamic legs) {
+    if (legs is! List) return const [];
+    final steps = <NavStep>[];
+    for (final leg in legs) {
+      final legSteps = leg is Map ? leg['steps'] : null;
+      if (legSteps is! List) continue;
+      for (final step in legSteps) {
+        if (step is! Map) continue;
+        final maneuver = step['maneuver'];
+        final type = (maneuver is Map ? maneuver['type'] : null) as String?;
+        if (type == 'arrive') continue;
+        final points = _decodeGeometry(step['geometry']);
+        if (points.length < 2) continue;
+        final modifier =
+            (maneuver is Map ? maneuver['modifier'] : null) as String?;
+        final name = (step['name'] as String?)?.trim() ?? '';
+        steps.add(
+          NavStep(
+            instruction: _osrmInstruction(type, modifier, name),
+            maneuver: _osrmManeuver(type, modifier),
+            distanceMeters: (step['distance'] as num?)?.toDouble() ?? 0,
+            durationSeconds: (step['duration'] as num?)?.toDouble() ?? 0,
+            points: points,
+          ),
+        );
+      }
+    }
+    return steps;
+  }
+
+  static String _osrmManeuver(String? type, String? modifier) {
+    final side = modifier?.contains('left') == true ? 'LEFT' : 'RIGHT';
+    if (type == 'depart') return 'DEPART';
+    if (type == 'roundabout' || type == 'rotary') return 'ROUNDABOUT_$side';
+    if (type == 'merge') return 'MERGE';
+    if (type == 'fork') return 'FORK_$side';
+    if (type == 'on ramp' || type == 'off ramp') return 'RAMP_$side';
+    switch (modifier) {
+      case 'uturn':
+        return 'UTURN_LEFT';
+      case 'sharp left':
+        return 'TURN_SHARP_LEFT';
+      case 'left':
+        return 'TURN_LEFT';
+      case 'slight left':
+        return 'TURN_SLIGHT_LEFT';
+      case 'sharp right':
+        return 'TURN_SHARP_RIGHT';
+      case 'right':
+        return 'TURN_RIGHT';
+      case 'slight right':
+        return 'TURN_SLIGHT_RIGHT';
+      default:
+        return 'STRAIGHT';
+    }
+  }
+
+  static String _osrmInstruction(String? type, String? modifier, String name) {
+    final onto = name.isEmpty ? '' : ' onto $name';
+    final direction = modifier ?? 'straight';
+    switch (type) {
+      case 'depart':
+        return name.isEmpty ? 'Head out' : 'Head out on $name';
+      case 'roundabout':
+      case 'rotary':
+        return 'At the roundabout, take the exit$onto';
+      case 'merge':
+        return 'Merge$onto';
+      case 'fork':
+        return 'Keep $direction at the fork$onto';
+      case 'on ramp':
+        return 'Take the ramp$onto';
+      case 'off ramp':
+        return 'Take the exit$onto';
+      case 'end of road':
+        return 'At the end of the road, turn $direction$onto';
+      case 'new name':
+      case 'continue':
+        return 'Continue$onto';
+      default:
+        if (direction == 'straight') return 'Continue straight$onto';
+        if (direction == 'uturn') return 'Make a U-turn$onto';
+        return 'Turn $direction$onto';
     }
   }
 
@@ -722,19 +853,41 @@ class MapService {
   }
 }
 
-/// One drivable route between two points, as returned by OSRM.
+/// One drivable route between two points, as returned by Google or OSRM.
 class RouteOption {
   final List<LatLng> points;
   final double distanceMeters;
   final double durationSeconds;
+  final List<NavStep> steps;
 
   const RouteOption({
     required this.points,
     required this.distanceMeters,
     required this.durationSeconds,
+    this.steps = const [],
   });
 
   int get durationMinutes => (durationSeconds / 60).ceil().clamp(1, 100000);
 
   double get distanceKm => distanceMeters / 1000;
+}
+
+/// One turn-by-turn step of a route. [instruction] and [maneuver] describe
+/// what to do at the start of the step; [points] is the road driven after it.
+class NavStep {
+  final String instruction;
+
+  /// Google Routes maneuver name, e.g. TURN_RIGHT or ROUNDABOUT_LEFT.
+  final String maneuver;
+  final double distanceMeters;
+  final double durationSeconds;
+  final List<LatLng> points;
+
+  const NavStep({
+    required this.instruction,
+    required this.maneuver,
+    required this.distanceMeters,
+    required this.durationSeconds,
+    required this.points,
+  });
 }

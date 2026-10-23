@@ -741,5 +741,20 @@
   "minsShort": "{minutes} mins",
   "orderDeclinedHidden": "Order removed from your list",
   "supportNumberUnavailable": "Support number not available",
-  "rateCustomerComingSoon": "Customer rating will be available soon"
+  "rateCustomerComingSoon": "Customer rating will be available soon",
+  "startNavigation": "ప్రారంభించు",
+  "routeSteps": "దశలు",
+  "exitNavigation": "నావిగేషన్ నుండి నిష్క్రమించు",
+  "recenter": "మళ్లీ మధ్యలో ఉంచు",
+  "thenLabel": "తర్వాత",
+  "arriveAtDestination": "గమ్యస్థానానికి చేరుకోండి",
+  "openInGoogleMaps": "Google Mapsలో తెరవండి",
+  "kmPerHour": "కి.మీ/గం",
+  "waitingForGps": "GPS సిగ్నల్ కోసం వేచి ఉంది",
+  "toDestination": "{address} కి",
+  "youHaveArrived": "మీరు చేరుకున్నారు",
+  "muteVoice": "వాయిస్ ఆపు",
+  "unmuteVoice": "వాయిస్ ఆన్ చేయి",
+  "routeOverview": "మార్గం అవలోకనం",
+  "customerPhoneUnavailable": "కస్టమర్ ఫోన్ నంబర్ అందుబాటులో లేదు"
 }

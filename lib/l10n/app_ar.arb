@@ -732,5 +732,20 @@
   "minsShort": "{minutes} mins",
   "orderDeclinedHidden": "Order removed from your list",
   "supportNumberUnavailable": "Support number not available",
-  "rateCustomerComingSoon": "Customer rating will be available soon"
+  "rateCustomerComingSoon": "Customer rating will be available soon",
+  "startNavigation": "ابدأ",
+  "routeSteps": "الخطوات",
+  "exitNavigation": "إنهاء الملاحة",
+  "recenter": "إعادة التوسيط",
+  "thenLabel": "ثم",
+  "arriveAtDestination": "الوصول إلى الوجهة",
+  "openInGoogleMaps": "فتح في خرائط Google",
+  "kmPerHour": "كم/س",
+  "waitingForGps": "في انتظار إشارة GPS",
+  "toDestination": "إلى {address}",
+  "youHaveArrived": "لقد وصلت",
+  "muteVoice": "كتم الصوت",
+  "unmuteVoice": "تشغيل الصوت",
+  "routeOverview": "نظرة عامة على المسار",
+  "customerPhoneUnavailable": "رقم هاتف العميل غير متوفر"
 }

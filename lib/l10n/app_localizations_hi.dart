@@ -2360,4 +2360,51 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get rateCustomerComingSoon => 'Customer rating will be available soon';
+
+  @override
+  String get startNavigation => 'शुरू करें';
+
+  @override
+  String get routeSteps => 'चरण';
+
+  @override
+  String get exitNavigation => 'नेविगेशन बंद करें';
+
+  @override
+  String get recenter => 'फिर से केंद्रित करें';
+
+  @override
+  String get thenLabel => 'फिर';
+
+  @override
+  String get arriveAtDestination => 'गंतव्य पर पहुँचें';
+
+  @override
+  String get openInGoogleMaps => 'Google Maps में खोलें';
+
+  @override
+  String get kmPerHour => 'किमी/घं';
+
+  @override
+  String get waitingForGps => 'GPS सिग्नल का इंतज़ार';
+
+  @override
+  String toDestination(String address) {
+    return '$address तक';
+  }
+
+  @override
+  String get youHaveArrived => 'आप पहुँच गए';
+
+  @override
+  String get muteVoice => 'आवाज़ बंद करें';
+
+  @override
+  String get unmuteVoice => 'आवाज़ चालू करें';
+
+  @override
+  String get routeOverview => 'रास्ते का अवलोकन';
+
+  @override
+  String get customerPhoneUnavailable => 'ग्राहक का फ़ोन नंबर उपलब्ध नहीं है';
 }

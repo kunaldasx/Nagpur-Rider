@@ -24,10 +24,12 @@ let package = Package(
         .package(name: "flutter_local_notifications", path: "../.packages/flutter_local_notifications-19.5.0"),
         .package(name: "geolocator_apple", path: "../.packages/geolocator_apple-2.3.14"),
         .package(name: "mobile_scanner", path: "../.packages/mobile_scanner-7.4.2"),
+        .package(name: "package_info_plus", path: "../.packages/package_info_plus-9.0.1"),
         .package(name: "permission_handler_apple", path: "../.packages/permission_handler_apple-9.6.2"),
         .package(name: "share_plus", path: "../.packages/share_plus-10.1.4"),
         .package(name: "shared_preferences_foundation", path: "../.packages/shared_preferences_foundation-2.5.7"),
         .package(name: "url_launcher_ios", path: "../.packages/url_launcher_ios-6.4.2"),
+        .package(name: "wakelock_plus", path: "../.packages/wakelock_plus-1.5.2"),
         .package(name: "webview_flutter_wkwebview", path: "../.packages/webview_flutter_wkwebview-3.26.2"),
         .package(name: "FlutterFramework", path: "../.packages/FlutterFramework")
     ],
@@ -44,10 +46,12 @@ let package = Package(
                 .product(name: "flutter-local-notifications", package: "flutter_local_notifications"),
                 .product(name: "geolocator-apple", package: "geolocator_apple"),
                 .product(name: "mobile-scanner", package: "mobile_scanner"),
+                .product(name: "package-info-plus", package: "package_info_plus"),
                 .product(name: "permission-handler-apple", package: "permission_handler_apple"),
                 .product(name: "share-plus", package: "share_plus"),
                 .product(name: "shared-preferences-foundation", package: "shared_preferences_foundation"),
                 .product(name: "url-launcher-ios", package: "url_launcher_ios"),
+                .product(name: "wakelock-plus", package: "wakelock_plus"),
                 .product(name: "webview-flutter-wkwebview", package: "webview_flutter_wkwebview"),
                 .product(name: "FlutterFramework", package: "FlutterFramework")
             ]

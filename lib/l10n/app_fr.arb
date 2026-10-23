@@ -732,5 +732,20 @@
   "minsShort": "{minutes} mins",
   "orderDeclinedHidden": "Order removed from your list",
   "supportNumberUnavailable": "Support number not available",
-  "rateCustomerComingSoon": "Customer rating will be available soon"
+  "rateCustomerComingSoon": "Customer rating will be available soon",
+  "startNavigation": "Démarrer",
+  "routeSteps": "Étapes",
+  "exitNavigation": "Quitter la navigation",
+  "recenter": "Recentrer",
+  "thenLabel": "Puis",
+  "arriveAtDestination": "Arrivée à destination",
+  "openInGoogleMaps": "Ouvrir dans Google Maps",
+  "kmPerHour": "km/h",
+  "waitingForGps": "En attente du signal GPS",
+  "toDestination": "Vers {address}",
+  "youHaveArrived": "Vous êtes arrivé",
+  "muteVoice": "Couper la voix",
+  "unmuteVoice": "Activer la voix",
+  "routeOverview": "Vue d'ensemble",
+  "customerPhoneUnavailable": "Numéro du client indisponible"
 }

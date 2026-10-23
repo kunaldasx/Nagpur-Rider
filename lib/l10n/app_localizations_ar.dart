@@ -2342,4 +2342,51 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get rateCustomerComingSoon => 'Customer rating will be available soon';
+
+  @override
+  String get startNavigation => 'ابدأ';
+
+  @override
+  String get routeSteps => 'الخطوات';
+
+  @override
+  String get exitNavigation => 'إنهاء الملاحة';
+
+  @override
+  String get recenter => 'إعادة التوسيط';
+
+  @override
+  String get thenLabel => 'ثم';
+
+  @override
+  String get arriveAtDestination => 'الوصول إلى الوجهة';
+
+  @override
+  String get openInGoogleMaps => 'فتح في خرائط Google';
+
+  @override
+  String get kmPerHour => 'كم/س';
+
+  @override
+  String get waitingForGps => 'في انتظار إشارة GPS';
+
+  @override
+  String toDestination(String address) {
+    return 'إلى $address';
+  }
+
+  @override
+  String get youHaveArrived => 'لقد وصلت';
+
+  @override
+  String get muteVoice => 'كتم الصوت';
+
+  @override
+  String get unmuteVoice => 'تشغيل الصوت';
+
+  @override
+  String get routeOverview => 'نظرة عامة على المسار';
+
+  @override
+  String get customerPhoneUnavailable => 'رقم هاتف العميل غير متوفر';
 }

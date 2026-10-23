@@ -25,6 +25,10 @@ import '../../../../../utils/widgets/custom_appbar_without_navbar.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../router/app_routes.dart';
 import '../../../../../utils/widgets/toast_message.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import '../navigation/navigation_widgets.dart';
+import '../navigation/turn_by_turn_navigator.dart';
+import '../navigation/voice_guidance.dart';
 
 class PickupRouteMapPage extends StatefulWidget {
   final Orders order;
@@ -52,7 +56,18 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
   DateTime? _lastRerouteTime;
   bool _isFetchingRoute = false;
   bool _hasFittedToRoute = false;
+  static const LatLng _nagpurCenter = LatLng(21.1458, 79.0882);
   bool _isUsingFallbackLocation = false;
+  bool _isRetryingRoute = false;
+
+  // In-app turn-by-turn navigation
+  bool _isNavigating = false;
+  bool _isFollowingRider = true;
+  TurnByTurnNavigator? _navigator;
+  NavProgress? _navProgress;
+  final VoiceGuidance _voice = VoiceGuidance();
+  double _navBearing = 0;
+  double _speedMps = 0;
 
   // Manual confirmation variables
   bool _hasReachedDestination = false;
@@ -105,6 +120,7 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
 
     _getCurrentLocation();
     _startLocationUpdates();
+    _voice.init();
   }
 
   Future<void> _getCurrentLocation() async {
@@ -229,8 +245,8 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
     setState(() {
       _isUsingFallbackLocation = true;
       // Use shipping address coordinates as fallback location
-      double fallbackLat = 23.2488453; // Default Bhuj coordinates
-      double fallbackLng = 69.6696795;
+      double fallbackLat = _nagpurCenter.latitude;
+      double fallbackLng = _nagpurCenter.longitude;
 
       if (widget.order.deliveryRoute?.routeDetails != null &&
           widget.order.deliveryRoute!.routeDetails!.isNotEmpty) {
@@ -315,7 +331,11 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
         return;
       }
       final selectedIndex =
-          _selectedRouteIndex < options.length ? _selectedRouteIndex : 0;
+          _isNavigating
+              ? _routeMatchingCurrent(options)
+              : (_selectedRouteIndex < options.length
+                  ? _selectedRouteIndex
+                  : 0);
       final accuratePoints =
           options.isNotEmpty ? options[selectedIndex].points : routePoints;
       final labelIcons = await _loadRouteLabelIcons(options, selectedIndex);
@@ -326,8 +346,15 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
           _routeLabelIcons = labelIcons;
           _accurateRoutePoints = accuratePoints;
         });
+        final navigator = _navigator;
+        if (_isNavigating && navigator != null && options.isNotEmpty) {
+          navigator.setRoute(options[selectedIndex]);
+          setState(() {
+            _navProgress = navigator.update(_getCurrentLocationLatLng());
+          });
+        }
         // Zoom to the road route the first time it arrives
-        if (!_hasFittedToRoute && _mapController != null) {
+        if (!_hasFittedToRoute && _mapController != null && !_isNavigating) {
           _hasFittedToRoute = true;
           GoogleMapHelpers.fitPoints(
             _mapController,
@@ -431,8 +458,228 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
         _currentLocation = locationData;
       });
 
+      if (_isNavigating) _onNavigationPosition(position);
       _maybeRefreshRouteOnMovement();
     });
+  }
+
+  // While navigating, keep the route the rider is already on when the
+  // refreshed options come in; after leaving the route take the fastest.
+  int _routeMatchingCurrent(List<RouteOption> options) {
+    if (options.length < 2 || _accurateRoutePoints.length < 2) return 0;
+    final rider = _getCurrentLocationLatLng();
+    if (MapService.minDistanceToPolyline(rider, _accurateRoutePoints) > 50) {
+      return 0;
+    }
+    int best = 0;
+    double bestScore = double.infinity;
+    for (int i = 0; i < options.length; i++) {
+      final points = options[i].points;
+      final step = math.max(1, points.length ~/ 20);
+      double total = 0;
+      int count = 0;
+      for (int j = 0; j < points.length; j += step) {
+        total += MapService.minDistanceToPolyline(
+          points[j],
+          _accurateRoutePoints,
+        );
+        count++;
+      }
+      final score = total / math.max(1, count);
+      if (score < bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  Future<void> _retryRouteAndNavigate() async {
+    setState(() => _isRetryingRoute = true);
+    // Wait out a fetch already in flight before starting a new one
+    while (_isFetchingRoute && mounted) {
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+    if (_routeOptions.isEmpty) await _fetchAccurateRoute();
+    if (!mounted) return;
+    setState(() => _isRetryingRoute = false);
+
+    if (_routeOptions.isEmpty) {
+      ToastManager.show(
+        context: context,
+        message: 'Could not load route. Check your internet and try again.',
+        type: ToastType.error,
+      );
+      return;
+    }
+    _startNavigation();
+  }
+
+  void _startNavigation() {
+    if (_routeOptions.isEmpty) return;
+    if (_isUsingFallbackLocation) {
+      ToastManager.show(
+        context: context,
+        message: AppLocalizations.of(context)!.waitingForGps,
+        type: ToastType.info,
+      );
+      return;
+    }
+
+    final navigator = TurnByTurnNavigator(_routeOptions[_selectedRouteIndex]);
+    final progress = navigator.update(_getCurrentLocationLatLng());
+    final speed = _currentLocation?.speed;
+    final heading = _currentLocation?.heading;
+    setState(() {
+      _navigator = navigator;
+      _navProgress = progress;
+      _isNavigating = true;
+      _isFollowingRider = true;
+      _speedMps = speed != null && speed > 0 ? speed : 0;
+      _navBearing =
+          heading != null && heading >= 0 && (speed ?? 0) > 1.5
+              ? heading
+              : _initialRouteBearing();
+    });
+    WakelockPlus.enable().catchError((_) {});
+    _voice.speak(navigator.announcement(progress, isFirst: true) ?? '');
+    _followRider();
+  }
+
+  // Direction of the first stretch of road, so the map faces the right way
+  // before the rider starts moving
+  double _initialRouteBearing() {
+    final points = _routeOptions[_selectedRouteIndex].points;
+    if (points.length < 2) return _riderRotation;
+    final start = points.first;
+    final ahead = points.firstWhere(
+      (p) => MapService.calculateDistance(start, p) > 0.02,
+      orElse: () => points[1],
+    );
+    return _calculateBearing(start, ahead);
+  }
+
+  void _stopNavigation({bool silenceVoice = true}) {
+    if (silenceVoice) _voice.stop();
+    WakelockPlus.disable().catchError((_) {});
+    setState(() {
+      _isNavigating = false;
+      _navigator = null;
+      _navProgress = null;
+    });
+    _showRouteOverview();
+  }
+
+  void _onNavigationPosition(geo.Position position) {
+    final navigator = _navigator;
+    if (navigator == null) return;
+
+    _speedMps = position.speed > 0 ? position.speed : 0;
+    // Heading is noise when standing still; keep the last good one
+    if (position.speed > 1.5 && position.heading >= 0) {
+      _navBearing = position.heading;
+    }
+
+    final progress = navigator.update(
+      LatLng(position.latitude, position.longitude),
+    );
+    setState(() => _navProgress = progress);
+
+    final text = navigator.announcement(progress, isFirst: false);
+    if (text != null) _voice.speak(text);
+
+    if (progress.arrived) {
+      _stopNavigation(silenceVoice: false);
+      ToastManager.show(
+        context: context,
+        message: AppLocalizations.of(context)!.youHaveArrived,
+        type: ToastType.success,
+      );
+      return;
+    }
+
+    if (_isFollowingRider) _followRider();
+  }
+
+  void _followRider() {
+    _mapController?.animateCamera(
+      gm.CameraUpdate.newCameraPosition(
+        gm.CameraPosition(
+          target: GoogleMapHelpers.toGm(_getCurrentLocationLatLng()),
+          zoom: 17.5,
+          tilt: 55,
+          bearing: _navBearing,
+        ),
+      ),
+    );
+  }
+
+  void _recenter() {
+    setState(() => _isFollowingRider = true);
+    _followRider();
+  }
+
+  // Flat, north-up view of the whole remaining route
+  Future<void> _showRouteOverview() async {
+    if (_isNavigating) setState(() => _isFollowingRider = false);
+    final controller = _mapController;
+    if (controller == null) return;
+    final current = _getCurrentLocationLatLng();
+    await controller.moveCamera(
+      gm.CameraUpdate.newCameraPosition(
+        gm.CameraPosition(target: GoogleMapHelpers.toGm(current), zoom: 15),
+      ),
+    );
+    await GoogleMapHelpers.fitPoints(
+      controller,
+      [current, ..._accurateRoutePoints],
+      padding: 80,
+      singlePointZoom: 15.0,
+    );
+  }
+
+  void _showSteps({required bool isDarkTheme}) {
+    if (_routeOptions.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final route = _navigator?.route ?? _routeOptions[_selectedRouteIndex];
+    final progress = _navProgress;
+    final minutes =
+        progress != null
+            ? (progress.remainingSeconds / 60).ceil().clamp(1, 100000)
+            : route.durationMinutes;
+    final meters = progress?.remainingMeters ?? route.distanceMeters;
+    showRouteStepsSheet(
+      context,
+      steps: route.steps,
+      currentStepIndex: progress?.stepIndex ?? -1,
+      summary:
+          '${l10n.routeMinutes(minutes)} · ${TurnByTurnNavigator.displayDistance(meters)}',
+      destination: widget.order.shippingAddress1 ?? '',
+      isDarkTheme: isDarkTheme,
+      onOpenInGoogleMaps: _openInGoogleMaps,
+    );
+  }
+
+  Future<void> _callCustomer() async {
+    final phone = (widget.order.shippingPhone ?? '').replaceAll(
+      RegExp(r'[^0-9+]'),
+      '',
+    );
+    if (phone.isEmpty) {
+      ToastManager.show(
+        context: context,
+        message: AppLocalizations.of(context)!.customerPhoneUnavailable,
+        type: ToastType.error,
+      );
+      return;
+    }
+    final code = (widget.order.shippingPhonecode ?? '').replaceAll(
+      RegExp(r'[^0-9]'),
+      '',
+    );
+    final number =
+        phone.startsWith('+') || code.isEmpty ? phone : '+$code$phone';
+    await launchUrl(Uri(scheme: 'tel', path: number));
   }
 
   void _animateRider(LatLng from, LatLng to) {
@@ -533,6 +780,21 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
   }
 
   Set<gm.Polyline> _buildRoutePolylines() {
+    final navRoute = _navigator?.route;
+    if (_isNavigating && navRoute != null) {
+      return {
+        gm.Polyline(
+          polylineId: const gm.PolylineId('nav_route'),
+          points: GoogleMapHelpers.toGmList(navRoute.points),
+          width: 9,
+          color: AppColors.primaryColor,
+          startCap: gm.Cap.roundCap,
+          endCap: gm.Cap.roundCap,
+          jointType: gm.JointType.round,
+        ),
+      };
+    }
+
     if (_routeOptions.isNotEmpty && _currentStage == 0) {
       return {
         for (int i = 0; i < _routeOptions.length; i++)
@@ -590,7 +852,7 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
       return LatLng(lat, lng);
     }
 
-    return const LatLng(23.2488453, 69.6696795);
+    return _nagpurCenter;
   }
 
   // Remaining distance from current location to the customer. Uses the road
@@ -679,12 +941,14 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
       return LatLng(orderLat, orderLng);
     }
 
-    // Final fallback to default Bhuj coordinates
-    return const LatLng(23.2488453, 69.6696795);
+    // Final fallback to the city centre
+    return _nagpurCenter;
   }
 
   @override
   void dispose() {
+    _voice.stop();
+    if (_isNavigating) WakelockPlus.disable().catchError((_) {});
     _locationSubscription?.cancel();
     _animationController?.dispose();
     _mapController?.dispose();
@@ -791,7 +1055,7 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
       rotation: _riderRotation,
     );
 
-    if (_currentStage == 0) {
+    if (_currentStage == 0 && !_isNavigating) {
       for (int i = 0; i < _routeOptions.length; i++) {
         final icon = _routeLabelIcons[i];
         if (icon == null) continue;
@@ -859,430 +1123,559 @@ class _PickupRouteMapPageState extends State<PickupRouteMapPage>
     );
   }
 
+  // Hands the trip to the Google Maps app: current location to the
+  // customer's shipping address
+  Future<void> _openInGoogleMaps() async {
+    try {
+      final currentLocation = _getCurrentLocationLatLng();
+      final currentLat = currentLocation.latitude.toString();
+      final currentLng = currentLocation.longitude.toString();
+
+      final destination = _getDestinationLocation();
+      final destinationAddress =
+          '${destination.latitude},${destination.longitude}';
+
+      final googleMapsUrl =
+          'https://www.google.com/maps/dir/?api=1'
+          '&origin=${Uri.encodeComponent('$currentLat,$currentLng')}'
+          '&destination=${Uri.encodeComponent(destinationAddress)}'
+          '&travelmode=driving';
+
+      await launchUrl(
+        Uri.parse(googleMapsUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ToastManager.show(
+        context: context,
+        message: 'Could not open navigation: $e',
+        type: ToastType.error,
+      );
+    }
+  }
+
+  // Start / Steps / Call row on the route preview card
+  Widget _buildRouteActions(bool isDarkTheme) {
+    final l10n = AppLocalizations.of(context)!;
+    final outlinedStyle = OutlinedButton.styleFrom(
+      foregroundColor: AppColors.primaryColor,
+      side: const BorderSide(color: AppColors.primaryColor),
+      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+    );
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: ElevatedButton.icon(
+            onPressed: _startNavigation,
+            icon: const Icon(Icons.navigation, color: Colors.white),
+            label: Text(
+              l10n.startNavigation,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryColor,
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          flex: 2,
+          child: OutlinedButton.icon(
+            onPressed: () => _showSteps(isDarkTheme: isDarkTheme),
+            icon: const Icon(Icons.format_list_bulleted),
+            label: Text(
+              l10n.routeSteps,
+              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+            ),
+            style: outlinedStyle,
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Tooltip(
+          message: l10n.call,
+          child: OutlinedButton(
+            onPressed: _callCustomer,
+            style: outlinedStyle.copyWith(
+              padding: WidgetStatePropertyAll(
+                EdgeInsets.symmetric(vertical: 12.h, horizontal: 12.w),
+              ),
+              minimumSize: const WidgetStatePropertyAll(Size.zero),
+            ),
+            child: const Icon(Icons.phone),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildNavigationOverlay(bool isDarkTheme) {
+    final progress = _navProgress;
+    if (progress == null) return const [];
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      Positioned(
+        top: 8.h,
+        left: 8.w,
+        right: 8.w,
+        child: NavigationBanner(progress: progress),
+      ),
+      Positioned(
+        top: 150.h,
+        right: 12.w,
+        child: Column(
+          children: [
+            NavigationMapButton(
+              icon: _voice.muted ? Icons.volume_off : Icons.volume_up,
+              tooltip: _voice.muted ? l10n.unmuteVoice : l10n.muteVoice,
+              onPressed: () {
+                setState(() => _voice.muted = !_voice.muted);
+                if (_voice.muted) _voice.stop();
+              },
+            ),
+            SizedBox(height: 10.h),
+            NavigationMapButton(
+              icon: Icons.alt_route,
+              tooltip: l10n.routeOverview,
+              onPressed: _showRouteOverview,
+            ),
+          ],
+        ),
+      ),
+      Positioned(
+        left: 12.w,
+        bottom: 96.h,
+        child: SpeedBubble(speedMetersPerSecond: _speedMps),
+      ),
+      if (!_isFollowingRider)
+        Positioned(
+          right: 12.w,
+          bottom: 100.h,
+          child: RecenterButton(onPressed: _recenter),
+        ),
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: NavigationBottomBar(
+          progress: progress,
+          isDarkTheme: isDarkTheme,
+          onExit: _stopNavigation,
+          onShowSteps: () => _showSteps(isDarkTheme: isDarkTheme),
+        ),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    // if (widget.order.items != null) {
-    //   final reachedDestinationItems =
-    //       widget.order.items!
-    //           .where((item) => item.reachedDestination == true)
-    //           .length;
-    //
-    //   // Check if View Details button should be shown
-    //   final shouldShowViewDetails =
-    //       _hasReachedDestination || _hasConfirmedArrival;
-    // }
-
     return BlocBuilder<ThemeBloc, ThemeState>(
       builder: (context, themeState) {
         final isDarkTheme = themeState.currentTheme == 'dark';
+        final showRouteActions =
+            _routeOptions.isNotEmpty &&
+            _currentStage == 0 &&
+            !_hasReachedDestination;
 
-        if (widget.order.deliveryRoute?.routeDetails != null) {
-          for (
-            int i = 0;
-            i < widget.order.deliveryRoute!.routeDetails!.length;
-            i++
-          ) {
-            // final store = widget.order.deliveryRoute!.routeDetails![i];
-          }
-        }
-
-        return CustomScaffold(
-          appBar: CustomAppBarWithoutNavbar(
-            title: AppLocalizations.of(context)!.deliveryRoute,
-
-            showRefreshButton: false,
-            showThemeToggle: false,
-          ),
-          body: Stack(
-            children: [
-              gm.GoogleMap(
-                initialCameraPosition: gm.CameraPosition(
-                  target: GoogleMapHelpers.toGm(
-                    (() {
-                      final center =
-                          _currentLocation != null
-                              ? _getCurrentLocationLatLng()
-                              : const LatLng(23.2530, 69.6693);
-                      return _isValidLatLng(center)
-                          ? center
-                          : const LatLng(23.2530, 69.6693);
-                    })(),
-                  ),
-                  zoom: 13.0,
-                ),
-                onMapCreated: (controller) {
-                  _mapController = controller;
-                  // The map needs a moment to lay out before bounds can be applied
-                  Future.delayed(const Duration(milliseconds: 500), () {
-                    if (mounted && _currentLocation != null) {
-                      _fitMapToAllPoints();
+        return PopScope(
+          // Back exits navigation first, like Google Maps
+          canPop: !_isNavigating,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && _isNavigating) _stopNavigation();
+          },
+          child: CustomScaffold(
+            appBar:
+                _isNavigating
+                    ? null
+                    : CustomAppBarWithoutNavbar(
+                      title: AppLocalizations.of(context)!.deliveryRoute,
+                      showRefreshButton: false,
+                      showThemeToggle: false,
+                    ),
+            body: Stack(
+              children: [
+                Listener(
+                  // Any touch on the map while navigating stops following
+                  onPointerDown: (_) {
+                    if (_isNavigating && _isFollowingRider) {
+                      setState(() => _isFollowingRider = false);
                     }
-                  });
-                },
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                mapToolbarEnabled: false,
-                // Keep the route clear of the top chip and the bottom card
-                padding: EdgeInsets.only(top: 60.h, bottom: 230.h),
-                polylines:
-                    _currentLocation != null
-                        ? _buildRoutePolylines()
-                        : const {},
-                markers: _currentLocation != null ? _buildMarkers() : const {},
-              ),
-              if (_isLoadingLocation)
-                Container(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const CircularProgressIndicator(),
-                        SizedBox(height: 16.h),
-                        CustomText(
-                          text: AppLocalizations.of(context)!.loadingMap,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
-                      ],
+                  },
+                  child: gm.GoogleMap(
+                    initialCameraPosition: gm.CameraPosition(
+                      target: GoogleMapHelpers.toGm(
+                        (() {
+                          // Before GPS arrives, open on the customer rather
+                          // than an arbitrary city
+                          final center =
+                              _currentLocation != null
+                                  ? _getCurrentLocationLatLng()
+                                  : _getDestinationLocation();
+                          return _isValidLatLng(center)
+                              ? center
+                              : _nagpurCenter;
+                        })(),
+                      ),
+                      zoom: 13.0,
+                    ),
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      // The map needs a moment to lay out before bounds can be applied
+                      Future.delayed(const Duration(milliseconds: 500), () {
+                        if (mounted && _currentLocation != null) {
+                          _fitMapToAllPoints();
+                        }
+                      });
+                    },
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    mapToolbarEnabled: false,
+                    compassEnabled: !_isNavigating,
+                    trafficEnabled: _isNavigating,
+                    // While navigating, the big top padding puts the rider in
+                    // the lower part of the screen so more road ahead shows
+                    padding:
+                        _isNavigating
+                            ? EdgeInsets.only(top: 260.h, bottom: 80.h)
+                            : EdgeInsets.only(
+                              top: 60.h,
+                              bottom: showRouteActions ? 290.h : 230.h,
+                            ),
+                    polylines:
+                        _currentLocation != null
+                            ? _buildRoutePolylines()
+                            : const {},
+                    markers:
+                        _currentLocation != null ? _buildMarkers() : const {},
+                  ),
+                ),
+                if (_isLoadingLocation)
+                  Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CircularProgressIndicator(),
+                          SizedBox(height: 16.h),
+                          CustomText(
+                            text: AppLocalizations.of(context)!.loadingMap,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              Positioned(
-                top: 20,
-                left: 20,
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8.r,
-                        offset: Offset(0, 2.h),
+                if (_isNavigating)
+                  ..._buildNavigationOverlay(isDarkTheme)
+                else ...[
+                  Positioned(
+                    top: 20,
+                    left: 20,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 8.h,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _routeOptions.isNotEmpty
-                            ? Icons.directions_car
-                            : Icons.straighten,
-                        color: Theme.of(context).colorScheme.onSurface,
-                        size: 16.sp,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(20.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8.r,
+                            offset: Offset(0, 2.h),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 4.w),
-                      CustomText(
-                        text:
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
                             _routeOptions.isNotEmpty
-                                ? '${AppLocalizations.of(context)!.routeMinutes(_routeOptions[_selectedRouteIndex].durationMinutes)} · ${_calculateRemainingDistanceKm().toStringAsFixed(1)} km'
-                                : '${_calculateRemainingDistanceKm().toStringAsFixed(1)} km',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14.sp,
+                                ? Icons.directions_car
+                                : Icons.straighten,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            size: 16.sp,
+                          ),
+                          SizedBox(width: 4.w),
+                          CustomText(
+                            text:
+                                _routeOptions.isNotEmpty
+                                    ? '${AppLocalizations.of(context)!.routeMinutes(_routeOptions[_selectedRouteIndex].durationMinutes)} · ${_calculateRemainingDistanceKm().toStringAsFixed(1)} km'
+                                    : '${_calculateRemainingDistanceKm().toStringAsFixed(1)} km',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.sp,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.3,
-                    minHeight: 150.h,
-                  ),
-                  padding: EdgeInsets.all(10.w),
-                  decoration: BoxDecoration(
-                    color: isDarkTheme ? AppColors.cardDarkColor : Colors.white,
-                    borderRadius: BorderRadius.circular(16.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 15.r,
-                        offset: Offset(0, 5.h),
-                        spreadRadius: 2.r,
+                  Positioned(
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.45,
+                        minHeight: 150.h,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        height: 32.h,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      padding: EdgeInsets.all(10.w),
+                      decoration: BoxDecoration(
+                        color:
+                            isDarkTheme
+                                ? AppColors.cardDarkColor
+                                : Colors.white,
+                        borderRadius: BorderRadius.circular(16.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 15.r,
+                            offset: Offset(0, 5.h),
+                            spreadRadius: 2.r,
+                          ),
+                        ],
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(4.w),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber,
-                                    borderRadius: BorderRadius.circular(4.r),
+                            SizedBox(
+                              height: 32.h,
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(4.w),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber,
+                                          borderRadius: BorderRadius.circular(
+                                            4.r,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.store,
+                                          color: Colors.white,
+                                          size: 14.sp,
+                                        ),
+                                      ),
+                                      SizedBox(width: 7.w),
+                                      CustomText(
+                                        text:
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.deliveryRoute,
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.oppColorChange,
+                                      ),
+                                    ],
                                   ),
-                                  child: Icon(
-                                    Icons.store,
-                                    color: Colors.white,
-                                    size: 14.sp,
-                                  ),
-                                ),
-                                SizedBox(width: 7.w),
-                                CustomText(
-                                  text:
-                                      AppLocalizations.of(
-                                        context,
-                                      )!.deliveryRoute,
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.oppColorChange,
-                                ),
-                              ],
-                            ),
 
-                            if ((!_hasReachedDestination ||
-                                    !_hasConfirmedArrival) &&
-                                _routeOptions.isEmpty)
-                              CustomText(
-                                text:
-                                    '${_calculateRemainingDistanceKm().toStringAsFixed(1)} km',
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[600],
-                              ),
-                            if (_hasReachedDestination || _hasConfirmedArrival)
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 8.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
-                                      size: 14.sp,
-                                    ),
-                                    SizedBox(width: 4.w),
+                                  if ((!_hasReachedDestination ||
+                                          !_hasConfirmedArrival) &&
+                                      _routeOptions.isEmpty)
                                     CustomText(
                                       text:
-                                          AppLocalizations.of(
-                                            context,
-                                          )!.arrivalConfirmed,
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.green,
+                                          '${_calculateRemainingDistanceKm().toStringAsFixed(1)} km',
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey[600],
+                                    ),
+                                  if (_hasReachedDestination ||
+                                      _hasConfirmedArrival)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8.w,
+                                        vertical: 4.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          12.r,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Colors.green,
+                                            size: 14.sp,
+                                          ),
+                                          SizedBox(width: 4.w),
+                                          CustomText(
+                                            text:
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.arrivalConfirmed,
+                                            fontSize: 11.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.green,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            // Drive time for the selected route
+                            SizedBox(height: 12.h),
+                            if (_routeOptions.isNotEmpty &&
+                                _currentStage == 0) ...[
+                              _buildDriveSummary(),
+                              SizedBox(height: 4.h),
+                            ],
+
+                            // Shipping Address Section
+                            if (widget.order.shippingAddress1 != null)
+                              Container(
+                                padding: EdgeInsets.all(8.w),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on,
+                                      color: Colors.red,
+                                      size: 16.sp,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Expanded(
+                                      child: CustomText(
+                                        text: widget.order.shippingAddress1!,
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w500,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
+                            SizedBox(height: 8.h),
+                            if (_hasReachedDestination) ...[
+                              CustomText(
+                                text:
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.arrivalNextStepHint,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[600],
+                              ),
+                              SizedBox(height: 8.h),
+                            ],
+
+                            if (showRouteActions) ...[
+                              _buildRouteActions(isDarkTheme),
+                              SizedBox(height: 8.h),
+                            ],
+
+                            SizedBox(
+                              width: double.infinity,
+                              child: CustomButton(
+                                textSize: 15.sp,
+                                text:
+                                    _hasReachedDestination
+                                        ? AppLocalizations.of(
+                                          context,
+                                        )!.continueToDelivery
+                                        : AppLocalizations.of(
+                                          context,
+                                        )!.confirmArrival,
+                                onPressed:
+                                    _hasReachedDestination
+                                        ? _openOrderDetails
+                                        : _showArrivalConfirmationDialog,
+                                icon: Icon(
+                                  _hasReachedDestination
+                                      ? Icons.arrow_forward
+                                      : Icons.location_on,
+                                  color:
+                                      showRouteActions
+                                          ? AppColors.primaryColor
+                                          : Colors.white,
+                                ),
+                                // With Start shown, arrival is the secondary action
+                                backgroundColor:
+                                    _hasReachedDestination
+                                        ? Colors.green
+                                        : showRouteActions
+                                        ? AppColors.primaryColor.withValues(
+                                          alpha: 0.1,
+                                        )
+                                        : AppColors.primaryColor,
+                                textColor:
+                                    showRouteActions
+                                        ? AppColors.primaryColor
+                                        : Colors.white,
+                                borderRadius: 8.r,
+                                padding: EdgeInsets.symmetric(vertical: 12.h),
+                                textStyle: TextStyle(
+                                  color:
+                                      showRouteActions
+                                          ? AppColors.primaryColor
+                                          : Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-
-                      // Drive time for the selected route
-                      SizedBox(height: 12.h),
-                      if (_routeOptions.isNotEmpty && _currentStage == 0) ...[
-                        _buildDriveSummary(),
-                        SizedBox(height: 4.h),
-                      ],
-
-                      // Shipping Address Section
-                      if (widget.order.shippingAddress1 != null)
-                        Container(
-                          padding: EdgeInsets.all(8.w),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                color: Colors.red,
-                                size: 16.sp,
-                              ),
-                              SizedBox(width: 8.w),
-                              Expanded(
-                                child: CustomText(
-                                  text: widget.order.shippingAddress1!,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w500,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      SizedBox(height: 8.h),
-                      if (_hasReachedDestination) ...[
-                        CustomText(
-                          text:
-                              AppLocalizations.of(context)!.arrivalNextStepHint,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[600],
-                        ),
-                        SizedBox(height: 8.h),
-                      ],
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: CustomButton(
-                          textSize: 15.sp,
-                          text:
-                              _hasReachedDestination
-                                  ? AppLocalizations.of(
-                                    context,
-                                  )!.continueToDelivery
-                                  : AppLocalizations.of(
-                                    context,
-                                  )!.confirmArrival,
-                          onPressed:
-                              _hasReachedDestination
-                                  ? _openOrderDetails
-                                  : _showArrivalConfirmationDialog,
-                          icon: Icon(
-                            _hasReachedDestination
-                                ? Icons.arrow_forward
-                                : Icons.location_on,
-                            color: Colors.white,
-                          ),
-                          backgroundColor:
-                              _hasReachedDestination
-                                  ? Colors.green
-                                  : AppColors.primaryColor,
-                          textColor: Colors.white,
-                          borderRadius: 8.r,
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          textStyle: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              Positioned(
-                top: 20,
-                right: 20,
-                child: FloatingActionButton(
-                  onPressed: () async {
-                    try {
-                      final currentLocation = _getCurrentLocationLatLng();
-                      final currentLat = currentLocation.latitude.toString();
-                      final currentLng = currentLocation.longitude.toString();
-
-                      // String destinationLat = '0', destinationLng = '0';
-
-                      // Use shipping address coordinates for navigation (final destination)
-                      if (widget.order.shippingLatitude != null &&
-                          widget.order.shippingLongitude != null) {
-                        // destinationLat = widget.order.shippingLatitude!;
-                        // destinationLng = widget.order.shippingLongitude!;
-                      } else if (widget.order.deliveryRoute?.routeDetails !=
-                              null &&
-                          widget
-                              .order
-                              .deliveryRoute!
-                              .routeDetails!
-                              .isNotEmpty) {
-                        // Fallback to last item in route_details (shipping address)
-                        final lastIndex =
-                            widget.order.deliveryRoute!.routeDetails!.length -
-                            1;
-                        final shippingAddress =
-                            widget
-                                .order
-                                .deliveryRoute!
-                                .routeDetails![lastIndex];
-                        if (shippingAddress.latitude != null &&
-                            shippingAddress.longitude != null) {
-                          // destinationLat = shippingAddress.latitude!.toString();
-                          // destinationLng =
-                          //     shippingAddress.longitude!.toString();
-                        }
-                      }
-
-                      // For PickupRouteMapPage: Only navigate to shipping address (no store addresses)
-                      String destinationAddress =
-                          'Bhuj, Gujarat, India'; // Default fallback
-
-                      // Use shipping address directly (this is a pickup route to seller)
-                      if (widget.order.shippingAddress1 != null) {
-                        destinationAddress = widget.order.shippingAddress1!;
-                        if (widget.order.shippingAddress2 != null) {
-                          destinationAddress +=
-                              ', ${widget.order.shippingAddress2}';
-                        }
-                      } else if (widget.order.deliveryRoute?.routeDetails !=
-                              null &&
-                          widget
-                              .order
-                              .deliveryRoute!
-                              .routeDetails!
-                              .isNotEmpty) {
-                        // Fallback to last item in route_details (shipping address)
-                        final lastIndex =
-                            widget.order.deliveryRoute!.routeDetails!.length -
-                            1;
-                        final shippingAddress =
-                            widget
-                                .order
-                                .deliveryRoute!
-                                .routeDetails![lastIndex];
-                        if (shippingAddress.address != null &&
-                            shippingAddress.address!.isNotEmpty) {
-                          destinationAddress = shippingAddress.address!;
-                        }
-                      }
-
-                      // Build Google Maps URL: Current location to shipping address only
-                      final googleMapsUrl =
-                          'https://www.google.com/maps/dir/?api=1'
-                          '&origin=${Uri.encodeComponent('$currentLat,$currentLng')}'
-                          '&destination=${Uri.encodeComponent(destinationAddress)}'
-                          '&travelmode=driving';
-
-                      final url = Uri.parse(googleMapsUrl);
-                      await launchUrl(
-                        url,
-                        mode: LaunchMode.externalApplication,
-                      );
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ToastManager.show(
-                        context: context,
-                        message: 'Could not open navigation: $e',
-                        type: ToastType.error,
-                      );
-                    }
-                  },
-                  backgroundColor: AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                  child: const Icon(Icons.navigation),
-                ),
-              ),
-            ],
+                  // Route not loaded yet: the button retries it and then
+                  // starts in-app navigation (no hand-off to Google Maps)
+                  if (_routeOptions.isEmpty)
+                    Positioned(
+                      top: 20,
+                      right: 20,
+                      child: FloatingActionButton(
+                        onPressed:
+                            _isRetryingRoute ? null : _retryRouteAndNavigate,
+                        backgroundColor: AppColors.primaryColor,
+                        foregroundColor: Colors.white,
+                        child:
+                            _isRetryingRoute
+                                ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                                : const Icon(Icons.navigation),
+                      ),
+                    ),
+                ],
+              ],
+            ),
           ),
         );
       },

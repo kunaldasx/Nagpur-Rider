@@ -2355,4 +2355,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rateCustomerComingSoon => 'Customer rating will be available soon';
+
+  @override
+  String get startNavigation => 'Start';
+
+  @override
+  String get routeSteps => 'Steps';
+
+  @override
+  String get exitNavigation => 'Exit navigation';
+
+  @override
+  String get recenter => 'Re-centre';
+
+  @override
+  String get thenLabel => 'Then';
+
+  @override
+  String get arriveAtDestination => 'Arrive at destination';
+
+  @override
+  String get openInGoogleMaps => 'Open in Google Maps';
+
+  @override
+  String get kmPerHour => 'km/h';
+
+  @override
+  String get waitingForGps => 'Waiting for GPS signal';
+
+  @override
+  String toDestination(String address) {
+    return 'To $address';
+  }
+
+  @override
+  String get youHaveArrived => 'You\'ve arrived';
+
+  @override
+  String get muteVoice => 'Mute voice';
+
+  @override
+  String get unmuteVoice => 'Unmute voice';
+
+  @override
+  String get routeOverview => 'Route overview';
+
+  @override
+  String get customerPhoneUnavailable => 'Customer phone number not available';
 }

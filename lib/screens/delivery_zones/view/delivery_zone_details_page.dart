@@ -276,12 +276,12 @@ class _DeliveryZoneDetailsPageState extends State<DeliveryZoneDetailsPage> {
 
   Widget _buildMap(DeliveryZoneModel zone) {
     // Parse center coordinates
-    double centerLat = double.tryParse(zone.centerLatitude) ?? 23.2488453;
-    double centerLng = double.tryParse(zone.centerLongitude) ?? 69.6696795;
+    double centerLat = double.tryParse(zone.centerLatitude) ?? 21.1458;
+    double centerLng = double.tryParse(zone.centerLongitude) ?? 79.0882;
 
     // Check for NaN or Infinity
-    if (centerLat.isNaN || centerLat.isInfinite) centerLat = 23.2488453;
-    if (centerLng.isNaN || centerLng.isInfinite) centerLng = 69.6696795;
+    if (centerLat.isNaN || centerLat.isInfinite) centerLat = 21.1458;
+    if (centerLng.isNaN || centerLng.isInfinite) centerLng = 79.0882;
 
     final center = LatLng(centerLat, centerLng);
 

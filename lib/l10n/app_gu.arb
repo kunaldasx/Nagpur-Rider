@@ -741,5 +741,20 @@
   "minsShort": "{minutes} mins",
   "orderDeclinedHidden": "Order removed from your list",
   "supportNumberUnavailable": "Support number not available",
-  "rateCustomerComingSoon": "Customer rating will be available soon"
+  "rateCustomerComingSoon": "Customer rating will be available soon",
+  "startNavigation": "શરૂ કરો",
+  "routeSteps": "પગલાં",
+  "exitNavigation": "નેવિગેશન બંધ કરો",
+  "recenter": "ફરી કેન્દ્રિત કરો",
+  "thenLabel": "પછી",
+  "arriveAtDestination": "ગંતવ્ય પર પહોંચો",
+  "openInGoogleMaps": "Google Maps માં ખોલો",
+  "kmPerHour": "કિમી/કલાક",
+  "waitingForGps": "GPS સિગ્નલની રાહ",
+  "toDestination": "{address} સુધી",
+  "youHaveArrived": "તમે પહોંચી ગયા",
+  "muteVoice": "અવાજ બંધ કરો",
+  "unmuteVoice": "અવાજ ચાલુ કરો",
+  "routeOverview": "માર્ગનું અવલોકન",
+  "customerPhoneUnavailable": "ગ્રાહકનો ફોન નંબર ઉપલબ્ધ નથી"
 }
