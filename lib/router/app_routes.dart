@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nagpur_rider/config/global.dart';
 import 'package:nagpur_rider/screens/auth/view/forgot_password_page.dart';
+import 'package:nagpur_rider/screens/auth/view/login_approval_pending_page.dart';
 import 'package:nagpur_rider/screens/auth/view/login_page.dart';
+import 'package:nagpur_rider/screens/auth/view/qr_login_page.dart';
 import 'package:nagpur_rider/screens/auth/view/phone_login_page.dart';
 import 'package:nagpur_rider/screens/auth/view/phone_otp_verification_page.dart';
 import 'package:nagpur_rider/screens/auth/view/register_page.dart';
@@ -58,6 +60,8 @@ Page platformPage(Widget child) {
 class AppRoutes {
   static const String splashScreen = '/';
   static const String login = '/login';
+  static const String qrLogin = '/qr-login';
+  static const String loginApprovalPending = '/login-approval-pending';
   static const String phoneOtpVerification = '/phone-otp-verification';
   static const String phoneLogin = '/phone-login';
   static const String forgotPassword = '/forgot-password';
@@ -115,6 +119,19 @@ class MyAppRoute {
         name: 'login',
         path: AppRoutes.login,
         pageBuilder: (context, state) => platformPage(LoginPage()),
+      ),
+
+      GoRoute(
+        name: 'qrLogin',
+        path: AppRoutes.qrLogin,
+        pageBuilder: (context, state) => platformPage(const QrLoginPage()),
+      ),
+
+      GoRoute(
+        name: 'loginApprovalPending',
+        path: AppRoutes.loginApprovalPending,
+        pageBuilder:
+            (context, state) => platformPage(const LoginApprovalPendingPage()),
       ),
 
       GoRoute(

@@ -1,6 +1,8 @@
 import 'package:nagpur_rider/config/constant.dart';
 
 String loginApi = '${baseUrl}login';
+String qrLoginApi = '${baseUrl}login/qr';
+String logoutApi = '${baseUrl}logout';
 String registerApi = '${baseUrl}register';
 String deliveryZoneApi = '${deliveryZoneUrl}delivery-zone';
 String deliveryBoyStatusApi = '${baseUrl}status/update';

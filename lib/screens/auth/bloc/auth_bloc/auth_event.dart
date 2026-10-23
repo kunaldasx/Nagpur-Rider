@@ -16,6 +16,20 @@ class LoginRequest extends AuthEvent {
   List<Object?> get props => [email, password];
 }
 
+/// Re-sends the email/password login held in memory while the rider waits
+/// for seller approval. The password is never persisted.
+class RetryPendingLoginRequest extends AuthEvent {}
+
+class CancelPendingLoginRequest extends AuthEvent {}
+
+class QrLoginRequest extends AuthEvent {
+  final String qrToken;
+  QrLoginRequest({required this.qrToken});
+
+  @override
+  List<Object?> get props => [qrToken];
+}
+
 class RegisterRequest extends AuthEvent {
   final String name;
   final String email;

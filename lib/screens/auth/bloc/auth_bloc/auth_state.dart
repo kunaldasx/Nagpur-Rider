@@ -17,6 +17,21 @@ class AuthSuccess extends AuthState {
   List<Object?> get props => [message];
 }
 
+/// Password login reached the backend but the seller has not approved it yet.
+class AuthPendingApproval extends AuthState {
+  final String message;
+  final String email;
+  final DateTime? requestedAt;
+  AuthPendingApproval({
+    required this.message,
+    required this.email,
+    this.requestedAt,
+  });
+
+  @override
+  List<Object?> get props => [message, email, requestedAt];
+}
+
 class AuthFailure extends AuthState {
   final String error;
   AuthFailure({required this.error});

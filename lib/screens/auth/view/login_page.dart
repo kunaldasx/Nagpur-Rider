@@ -46,12 +46,17 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: BlocListener<AuthBloc, AuthState>(
+        // QR and approval-pending pages share this bloc; only react while
+        // this page is on top.
+        listenWhen: (_, __) => ModalRoute.of(context)?.isCurrent ?? true,
         listener: (BuildContext context, AuthState state) {
           log('State $state');
 
           if (state is AuthSuccess) {
             ToastManager.show(context: context, message: state.message);
             GoRouter.of(context).push(AppRoutes.dashboard);
+          } else if (state is AuthPendingApproval) {
+            GoRouter.of(context).push(AppRoutes.loginApprovalPending);
           } else if (state is AuthFailure) {
             ToastManager.show(context: context, message: state.error);
           }
@@ -144,6 +149,10 @@ class _LoginPageState extends State<LoginPage> {
                           /// Divider with OR
                           orDivider(),
                           SizedBox(height: 8.h),
+
+                          /// Scan seller QR to login
+                          qrLoginButton(),
+                          SizedBox(height: 12.h),
 
                           /// Navigate to phone login
                           navigateToPhoneLogin(),
@@ -262,6 +271,27 @@ class _LoginPageState extends State<LoginPage> {
         ),
         Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
       ],
+    );
+  }
+
+  Widget qrLoginButton() {
+    return OutlinedButton.icon(
+      onPressed: () => GoRouter.of(context).push(AppRoutes.qrLogin),
+      icon: const Icon(Icons.qr_code_scanner),
+      label: CustomText(
+        text: 'Login with QR Code',
+        color: AppColors.primaryColor,
+        fontSize: 15.sp,
+        fontWeight: FontWeight.w600,
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primaryColor,
+        side: BorderSide(color: AppColors.primaryColor),
+        minimumSize: Size.fromHeight(50.h),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+      ),
     );
   }
 

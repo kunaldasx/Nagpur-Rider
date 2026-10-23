@@ -2,10 +2,9 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:nagpur_rider/config/global.dart';
+import 'package:nagpur_rider/config/constant.dart';
 import 'package:nagpur_rider/config/security.dart';
-import 'package:nagpur_rider/router/app_routes.dart';
+import 'package:nagpur_rider/utils/services/session_service.dart';
 
 import 'error_message_code.dart';
 
@@ -39,6 +38,9 @@ class ApiBaseHelper {
               debugPrint('Status: ${e.response?.statusCode}');
               debugPrint('Error: ${e.message}');
               debugPrint('Response: ${e.response?.data}');
+              if (_isRejectedRiderToken(e)) {
+                SessionService.expireSession();
+              }
               return handler.next(e);
             },
           ),
@@ -59,8 +61,17 @@ class ApiBaseHelper {
           },
         ),
       );
-      return response.data as Map<String, dynamic>;
+      return {
+        ...response.data as Map<String, dynamic>,
+        'statusCode': response.statusCode,
+      };
     } on DioException catch (e) {
+      // Login failures (401 invalid credentials / QR, 403 pending seller
+      // approval, 422 validation) carry a JSON body the caller needs.
+      final data = e.response?.data;
+      if (data is Map<String, dynamic>) {
+        return {...data, 'statusCode': e.response?.statusCode};
+      }
       throw ApiException(
         e.error is SocketException
             ? ErrorMessageKeysAndCode.noInternetCode
@@ -73,6 +84,23 @@ class ApiBaseHelper {
       ("e: $e");
       throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageKey);
     }
+  }
+
+  /// Per the rider login API, any 401 or 403 from a protected rider
+  /// endpoint means the session is over (approval deadline passed, QR
+  /// session expired or revoked, seller rejected the rider): clear local
+  /// credentials and show the login screen.
+  static bool _isRejectedRiderToken(DioException e) {
+    final hasToken = e.requestOptions.headers.containsKey('Authorization');
+    if (!hasToken) return false;
+    final statusCode = e.response?.statusCode;
+    final data = e.response?.data;
+    final isRiderEndpoint = e.requestOptions.uri.toString().startsWith(
+      baseUrl,
+    );
+    return statusCode == 401 ||
+        (statusCode == 403 && isRiderEndpoint) ||
+        (data is Map && data['message'] == 'Unauthenticated');
   }
 
   static Future<Map<String, dynamic>> formPost({
@@ -388,13 +416,6 @@ class ApiBaseHelper {
       // log('Unauthenticated-----  ${e.response?.statusCode}');
       log('Unauthenticated-----  ${e.response?.data}');
       log('Unauthenticated-----  ${e.response?.statusCode == 401 || e.response?.data['message'] == 'Unauthenticated'}');
-      if(e.response?.statusCode == 401 || e.response?.data['message'] == 'Unauthenticated') {
-
-        Global.clearUserToken();
-        Global.clearIdToken();
-        Global.clearDeliveryBoyStatus();
-        GoRouter.of(navigatorKey.currentContext!).pushReplacement(AppRoutes.login);
-      }
       if (e.response?.statusCode == 403) {
         final responseData = e.response?.data as Map<String, dynamic>? ?? {};
         return {

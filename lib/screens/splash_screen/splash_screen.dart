@@ -1,12 +1,10 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nagpur_rider/config/app_images.dart';
 import 'package:nagpur_rider/router/app_routes.dart';
-import '../../config/colors.dart';
 import '../../config/global.dart';
 import '../../utils/notification_manager.dart';
+import '../../utils/services/session_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -80,7 +78,13 @@ class _SplashScreenState extends State<SplashScreen> {
       }
 
       // Check authentication status and redirect accordingly
-      final token = await Global.getUserToken();
+      var token = await Global.getUserToken();
+
+      // Rider tokens end at the seller approval deadline / QR expiry.
+      if (token != null && await Global.isUserTokenExpired()) {
+        await SessionService.endLocalSession();
+        token = null;
+      }
 
       if (token != null) {
         // User is authenticated, go to dashboard

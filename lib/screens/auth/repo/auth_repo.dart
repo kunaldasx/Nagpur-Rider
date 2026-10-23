@@ -18,13 +18,38 @@ class AuthRepository {
       Map<String, dynamic> body = {
         'email': email,
         'password': password,
-
-        "fcm_token": fcmToken,
+        if (fcmToken != null && fcmToken.isNotEmpty) "fcm_token": fcmToken,
         "device_type": Platform.isAndroid ? 'android' : 'ios',
       };
 
       var response = await ApiBaseHelper.loginPost(url: loginApi, body: body);
       return response;
+    } catch (e) {
+      throw ApiException(e.toString());
+    }
+  }
+
+  /// Logs in with the opaque `qr_payload` scanned from the seller app.
+  Future<Map<String, dynamic>> loginWithQr({required String qrToken}) async {
+    try {
+      final fcmToken = await Global.getFCMToken();
+
+      Map<String, dynamic> body = {
+        'qr_token': qrToken,
+        if (fcmToken != null && fcmToken.isNotEmpty) "fcm_token": fcmToken,
+        "device_type": Platform.isAndroid ? 'android' : 'ios',
+      };
+
+      var response = await ApiBaseHelper.loginPost(url: qrLoginApi, body: body);
+      return response;
+    } catch (e) {
+      throw ApiException(e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> logout() async {
+    try {
+      return await ApiBaseHelper.post(url: logoutApi);
     } catch (e) {
       throw ApiException(e.toString());
     }

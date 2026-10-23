@@ -6,7 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nagpur_rider/config/global.dart';
-import 'package:nagpur_rider/utils/location_tracker.dart';
+import 'package:nagpur_rider/screens/auth/repo/auth_repo.dart';
+import 'package:nagpur_rider/utils/services/session_service.dart';
 
 import 'package:nagpur_rider/config/theme_bloc.dart';
 import 'package:nagpur_rider/utils/widgets/custom_appbar_without_navbar.dart';
@@ -122,8 +123,9 @@ class _MorePageState extends State<MorePage> {
                                         child,
                                         loadingProgress,
                                       ) {
-                                        if (loadingProgress == null)
+                                        if (loadingProgress == null) {
                                           return child;
+                                        }
                                         return SizedBox(
                                           width: 70.r,
                                           height: 70.r,
@@ -602,11 +604,12 @@ class _MorePageState extends State<MorePage> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                LocationTracker().stopTracking();
-                await Global.setDeliveryBoyStatus(false);
-                await Global.clearDeliveryBoyStatus();
-                await Global.clearUserToken();
-                await Global.clearIdToken();
+                try {
+                  // Revoke the rider token on the backend; local
+                  // credentials are cleared even if this fails.
+                  await AuthRepository().logout();
+                } catch (_) {}
+                await SessionService.endLocalSession();
                 // Navigate to login page
                 if (!context.mounted) return;
                 GoRouter.of(context).pushReplacement(AppRoutes.login);

@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nagpur_rider/utils/services/order_alert_bridge.dart';
 
@@ -10,9 +11,14 @@ class Global {
   static const String _boxName = 'UserDataBox';
   static const String _tokenKey = 'userToken';
   static const String _idTokenKey = 'firebaseIdToken';
+  static const String _tokenExpiresAtKey = 'userTokenExpiresAt';
 
   static const String _statusBoxName = 'DeliveryBoyStatusBox';
   static const String _statusKey = 'isOnline';
+
+  // The rider access token and its expiry live in the platform keystore
+  // (Android Keystore / iOS Keychain), not in the plain Hive box.
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   static Future<Box> get _userBox async {
     return await Hive.openBox(_boxName);
@@ -23,37 +29,35 @@ class Global {
   }
 
   static Future<void> setUserToken(String token) async {
-    final box = await _userBox;
-    await box.put(_tokenKey, token);
+    await _secureStorage.write(key: _tokenKey, value: token);
     _cachedToken = token;
     await OrderAlertBridge.setLoggedIn(token.trim().isNotEmpty);
   }
 
   static Future<void> refreshCachedToken() async {
-    final box = await _userBox;
-    final tokenFromStorage = box.get(_tokenKey);
-
-    _cachedToken = tokenFromStorage;
-
-    // if (_cachedToken == null) {
-    //   final allKeys = box.keys.toList();
-    // }
+    _cachedToken = await getUserToken();
   }
 
   static Future<String?> getUserToken() async {
-    final box = await _userBox;
-    final token = box.get(_tokenKey);
+    final token = await _secureStorage.read(key: _tokenKey);
+    if (token != null) return token;
+    return _migrateLegacyToken();
+  }
 
-    return token;
+  /// Moves a token saved by older app versions out of the plain Hive box.
+  static Future<String?> _migrateLegacyToken() async {
+    final box = await _userBox;
+    final legacyToken = box.get(_tokenKey);
+    if (legacyToken is! String) return null;
+    await _secureStorage.write(key: _tokenKey, value: legacyToken);
+    await box.delete(_tokenKey);
+    return legacyToken;
   }
 
   static String? _cachedToken;
 
   static Future<void> initializeToken() async {
-    final box = await _userBox;
-    final tokenFromBox = box.get(_tokenKey);
-
-    _cachedToken = tokenFromBox;
+    _cachedToken = await getUserToken();
   }
 
   static String? get userToken {
@@ -61,11 +65,42 @@ class Global {
   }
 
   static Future<void> clearUserToken() async {
+    await _secureStorage.delete(key: _tokenKey);
+    await _secureStorage.delete(key: _tokenExpiresAtKey);
     final box = await _userBox;
     await box.delete(_tokenKey);
     _cachedToken = null;
     // Stops any ringing order alert, and no alert rings until the next login.
     await OrderAlertBridge.setLoggedIn(false);
+  }
+
+  // Rider tokens expire at the seller approval deadline (password login)
+  // or at the QR's expires_at (QR login).
+  static Future<void> setUserTokenExpiresAt(String? expiresAt) async {
+    if (expiresAt == null || expiresAt.isEmpty) {
+      await _secureStorage.delete(key: _tokenExpiresAtKey);
+    } else {
+      await _secureStorage.write(key: _tokenExpiresAtKey, value: expiresAt);
+    }
+  }
+
+  static Future<DateTime?> getUserTokenExpiresAt() async {
+    final value = await _secureStorage.read(key: _tokenExpiresAtKey);
+    if (value == null) return null;
+    return DateTime.tryParse(value);
+  }
+
+  static Future<bool> isUserTokenExpired() async {
+    final expiresAt = await getUserTokenExpiresAt();
+    if (expiresAt == null) return false;
+    return !DateTime.now().toUtc().isBefore(expiresAt.toUtc());
+  }
+
+  /// Clears every locally stored rider credential.
+  static Future<void> clearSession() async {
+    await clearUserToken();
+    await clearIdToken();
+    await clearDeliveryBoyStatus();
   }
 
   // Firebase ID Token management
