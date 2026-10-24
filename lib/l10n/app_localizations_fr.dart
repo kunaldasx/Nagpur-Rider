@@ -2444,4 +2444,90 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customerPhoneUnavailable => 'Numéro du client indisponible';
+
+  @override
+  String get returnPickup => 'Retrait du retour';
+
+  @override
+  String get returnStepPickup => 'Étape 1 · Retrait chez le client';
+
+  @override
+  String get returnStepToSeller => 'Étape 2 · Retour au vendeur';
+
+  @override
+  String get arrivedAtCustomer => 'Arrivé chez le client';
+
+  @override
+  String get arrivedAtSeller => 'Arrivé chez le vendeur';
+
+  @override
+  String returnItemsCount(int count) {
+    return 'Articles retournés ($count)';
+  }
+
+  @override
+  String get collectTheseItems => 'Récupérez ces articles';
+
+  @override
+  String carryingItems(int count) {
+    return 'En transport ($count)';
+  }
+
+  @override
+  String handOverTo(String name) {
+    return 'Remettre à $name';
+  }
+
+  @override
+  String get iHaveReachedCustomer => 'Je suis chez le client';
+
+  @override
+  String get iHaveReachedSeller => 'Je suis chez le vendeur';
+
+  @override
+  String get haveYouReachedCustomer =>
+      'Êtes-vous arrivé chez le client ? Il sera averti que vous êtes là pour le retrait du retour.';
+
+  @override
+  String get haveYouReachedSeller => 'Êtes-vous arrivé au magasin du vendeur ?';
+
+  @override
+  String get customerNotifiedRiderHere =>
+      'Client averti : votre livreur est là pour le retrait du retour';
+
+  @override
+  String get notifyingCustomer => 'Notification du client…';
+
+  @override
+  String get customerNotifyFailed =>
+      'Impossible d\'avertir le client. Veuillez l\'appeler.';
+
+  @override
+  String get notifyAgain => 'Avertir à nouveau';
+
+  @override
+  String get callCustomer => 'Appeler le client';
+
+  @override
+  String get callSeller => 'Appeler le vendeur';
+
+  @override
+  String get swipePackageCollected => 'Glisser : colis récupéré';
+
+  @override
+  String get swipeDeliveredToSeller => 'Glisser : remis au vendeur';
+
+  @override
+  String get returnCompleted => 'Retour terminé';
+
+  @override
+  String returnDeliveredSummary(String id) {
+    return 'Retour #$id remis au vendeur';
+  }
+
+  @override
+  String get backToOrders => 'Retour aux commandes';
+
+  @override
+  String get sellerPhoneUnavailable => 'Numéro du vendeur indisponible';
 }

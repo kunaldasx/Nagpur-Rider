@@ -58,6 +58,21 @@ class ReturnOrderRepo {
     }
   }
 
+  // Tells the backend the rider is at the customer's door, so it can push
+  // "your rider is here" to the customer
+  Future<Map<String, dynamic>> markArrivedAtCustomer(String returnId) async {
+    try {
+      final response = await ApiBaseHelper.post(
+        url: '$updateReturnOrderApi$returnId/arrived',
+        useAuthToken: true,
+      );
+
+      return response;
+    } catch (error) {
+      throw Exception('Error occurred while notifying the customer');
+    }
+  }
+
   Future<Map<String, dynamic>> getReturnPickups({
     int? limit,
     int? offset,

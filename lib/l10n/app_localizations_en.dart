@@ -2402,4 +2402,90 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customerPhoneUnavailable => 'Customer phone number not available';
+
+  @override
+  String get returnPickup => 'Return Pickup';
+
+  @override
+  String get returnStepPickup => 'Step 1 · Pickup from customer';
+
+  @override
+  String get returnStepToSeller => 'Step 2 · Return to seller';
+
+  @override
+  String get arrivedAtCustomer => 'Arrived at customer';
+
+  @override
+  String get arrivedAtSeller => 'Arrived at seller';
+
+  @override
+  String returnItemsCount(int count) {
+    return 'Return items ($count)';
+  }
+
+  @override
+  String get collectTheseItems => 'Collect these items';
+
+  @override
+  String carryingItems(int count) {
+    return 'Carrying ($count)';
+  }
+
+  @override
+  String handOverTo(String name) {
+    return 'Hand over to $name';
+  }
+
+  @override
+  String get iHaveReachedCustomer => 'I\'ve reached customer';
+
+  @override
+  String get iHaveReachedSeller => 'I\'ve reached seller';
+
+  @override
+  String get haveYouReachedCustomer =>
+      'Have you reached the customer? They will be notified that you are here for the return pickup.';
+
+  @override
+  String get haveYouReachedSeller => 'Have you reached the seller\'s store?';
+
+  @override
+  String get customerNotifiedRiderHere =>
+      'Customer notified: your rider is here for the return pickup';
+
+  @override
+  String get notifyingCustomer => 'Notifying customer…';
+
+  @override
+  String get customerNotifyFailed =>
+      'Couldn\'t notify the customer. Please call them.';
+
+  @override
+  String get notifyAgain => 'Notify again';
+
+  @override
+  String get callCustomer => 'Call customer';
+
+  @override
+  String get callSeller => 'Call seller';
+
+  @override
+  String get swipePackageCollected => 'Swipe: Package collected';
+
+  @override
+  String get swipeDeliveredToSeller => 'Swipe: Delivered to seller';
+
+  @override
+  String get returnCompleted => 'Return completed';
+
+  @override
+  String returnDeliveredSummary(String id) {
+    return 'Return #$id delivered to seller';
+  }
+
+  @override
+  String get backToOrders => 'Back to orders';
+
+  @override
+  String get sellerPhoneUnavailable => 'Seller phone number not available';
 }

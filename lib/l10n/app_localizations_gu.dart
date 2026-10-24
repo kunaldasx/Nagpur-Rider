@@ -2409,4 +2409,90 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get customerPhoneUnavailable => 'ગ્રાહકનો ફોન નંબર ઉપલબ્ધ નથી';
+
+  @override
+  String get returnPickup => 'રિટર્ન પિકઅપ';
+
+  @override
+  String get returnStepPickup => 'પગલું 1 · ગ્રાહક પાસેથી પિકઅપ';
+
+  @override
+  String get returnStepToSeller => 'પગલું 2 · વિક્રેતાને પરત';
+
+  @override
+  String get arrivedAtCustomer => 'ગ્રાહક પાસે પહોંચી ગયા';
+
+  @override
+  String get arrivedAtSeller => 'વિક્રેતા પાસે પહોંચી ગયા';
+
+  @override
+  String returnItemsCount(int count) {
+    return 'રિટર્ન આઇટમ્સ ($count)';
+  }
+
+  @override
+  String get collectTheseItems => 'આ આઇટમ્સ લો';
+
+  @override
+  String carryingItems(int count) {
+    return 'સાથે ($count)';
+  }
+
+  @override
+  String handOverTo(String name) {
+    return '$name ને સોંપો';
+  }
+
+  @override
+  String get iHaveReachedCustomer => 'હું ગ્રાહક પાસે પહોંચી ગયો';
+
+  @override
+  String get iHaveReachedSeller => 'હું વિક્રેતા પાસે પહોંચી ગયો';
+
+  @override
+  String get haveYouReachedCustomer =>
+      'શું તમે ગ્રાહક પાસે પહોંચી ગયા? તેમને જાણ કરવામાં આવશે કે તમે રિટર્ન પિકઅપ માટે આવ્યા છો.';
+
+  @override
+  String get haveYouReachedSeller => 'શું તમે વિક્રેતાની દુકાને પહોંચી ગયા?';
+
+  @override
+  String get customerNotifiedRiderHere =>
+      'ગ્રાહકને જાણ કરી: રાઇડર રિટર્ન પિકઅપ માટે આવી ગયો છે';
+
+  @override
+  String get notifyingCustomer => 'ગ્રાહકને જાણ કરી રહ્યા છીએ…';
+
+  @override
+  String get customerNotifyFailed =>
+      'ગ્રાહકને જાણ કરી શક્યા નહીં. કૃપા કરીને તેમને કૉલ કરો.';
+
+  @override
+  String get notifyAgain => 'ફરી જાણ કરો';
+
+  @override
+  String get callCustomer => 'ગ્રાહકને કૉલ કરો';
+
+  @override
+  String get callSeller => 'વિક્રેતાને કૉલ કરો';
+
+  @override
+  String get swipePackageCollected => 'સ્વાઇપ કરો: પેકેજ લીધું';
+
+  @override
+  String get swipeDeliveredToSeller => 'સ્વાઇપ કરો: વિક્રેતાને સોંપ્યું';
+
+  @override
+  String get returnCompleted => 'રિટર્ન પૂર્ણ થયું';
+
+  @override
+  String returnDeliveredSummary(String id) {
+    return 'રિટર્ન #$id વિક્રેતાને સોંપાયું';
+  }
+
+  @override
+  String get backToOrders => 'ઓર્ડર પર પાછા જાઓ';
+
+  @override
+  String get sellerPhoneUnavailable => 'વિક્રેતાનો ફોન નંબર ઉપલબ્ધ નથી';
 }

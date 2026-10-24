@@ -813,5 +813,58 @@
         "type": "String"
       }
     }
-  }
+  },
+  "returnPickup": "Return Pickup",
+  "returnStepPickup": "Step 1 · Pickup from customer",
+  "returnStepToSeller": "Step 2 · Return to seller",
+  "arrivedAtCustomer": "Arrived at customer",
+  "arrivedAtSeller": "Arrived at seller",
+  "returnItemsCount": "Return items ({count})",
+  "@returnItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectTheseItems": "Collect these items",
+  "carryingItems": "Carrying ({count})",
+  "@carryingItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "handOverTo": "Hand over to {name}",
+  "@handOverTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "iHaveReachedCustomer": "I've reached customer",
+  "iHaveReachedSeller": "I've reached seller",
+  "haveYouReachedCustomer": "Have you reached the customer? They will be notified that you are here for the return pickup.",
+  "haveYouReachedSeller": "Have you reached the seller's store?",
+  "customerNotifiedRiderHere": "Customer notified: your rider is here for the return pickup",
+  "notifyingCustomer": "Notifying customer…",
+  "customerNotifyFailed": "Couldn't notify the customer. Please call them.",
+  "notifyAgain": "Notify again",
+  "callCustomer": "Call customer",
+  "callSeller": "Call seller",
+  "swipePackageCollected": "Swipe: Package collected",
+  "swipeDeliveredToSeller": "Swipe: Delivered to seller",
+  "returnCompleted": "Return completed",
+  "returnDeliveredSummary": "Return #{id} delivered to seller",
+  "@returnDeliveredSummary": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "backToOrders": "Back to orders",
+  "sellerPhoneUnavailable": "Seller phone number not available"
 }

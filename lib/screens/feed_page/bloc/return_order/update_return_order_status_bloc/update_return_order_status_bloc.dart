@@ -20,7 +20,7 @@ class UpdateReturnOrderStatusBloc
     Emitter<UpdateReturnOrderStatusState> emit,
   ) async {
     try {
-      emit(UpdateReturnOrderStatusInitial());
+      emit(UpdateReturnOrderStatusLoading());
 
       final response = await _repo.updateReturnOrderStatus(
         event.returnId,
@@ -47,17 +47,17 @@ class UpdateReturnOrderStatusBloc
         );
       }
     } on ApiException catch (e) {
-      if (kDebugMode) {
-        emit(UpdateReturnOrderStatusFailed("Network error: $e"));
-      }
+      emit(
+        UpdateReturnOrderStatusFailed(
+          kDebugMode ? "Network error: $e" : "Network error. Please try again.",
+        ),
+      );
     } catch (e) {
-      if (kDebugMode) {
-        emit(
-          UpdateReturnOrderStatusFailed(
-            "Something went wrong. Please try again.",
-          ),
-        );
-      }
+      emit(
+        UpdateReturnOrderStatusFailed(
+          "Something went wrong. Please try again.",
+        ),
+      );
     }
   }
 }

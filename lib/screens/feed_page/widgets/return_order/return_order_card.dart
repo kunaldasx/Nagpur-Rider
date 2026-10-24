@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_swipe_button/flutter_swipe_button.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nagpur_rider/config/app_images.dart';
 import 'package:nagpur_rider/config/colors.dart';
 
@@ -10,7 +11,7 @@ import 'package:nagpur_rider/utils/widgets/custom_card.dart';
 import 'package:nagpur_rider/utils/widgets/custom_text.dart';
 import 'package:nagpur_rider/utils/widgets/loading_widget.dart';
 import 'package:nagpur_rider/utils/widgets/toast_message.dart';
-import 'package:nagpur_rider/utils/currency_formatter.dart';
+import 'package:nagpur_rider/router/app_routes.dart';
 import '../../bloc/return_order/accept_return_order_bloc/return_order_bloc.dart';
 import '../../bloc/return_order/return_orders_list_bloc/return_order_list_bloc.dart';
 import '../../model/return_orders_list_model.dart';
@@ -257,6 +258,11 @@ class _ReturnOrderCardContent extends StatelessWidget {
                     // Refresh list after accept
                     context.read<ReturnOrderListBloc>().add(
                       FetchReturnOrders(forceRefresh: true),
+                    );
+                    // Straight to the map, like an accepted delivery order
+                    context.push(
+                      AppRoutes.pickupOrderMap,
+                      extra: {'pickup': pickup},
                     );
                   } else if (state is ReturnOrderError) {
                     ToastManager.show(

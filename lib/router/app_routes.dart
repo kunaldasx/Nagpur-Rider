@@ -14,7 +14,7 @@ import 'package:nagpur_rider/screens/dashboard/view/notification_list_page.dart'
 import 'package:nagpur_rider/screens/feed_page/model/available_orders.dart';
 import 'package:nagpur_rider/screens/feed_page/model/return_orders_list_model.dart';
 import 'package:nagpur_rider/screens/feed_page/view/home_page.dart';
-import 'package:nagpur_rider/screens/feed_page/view/map/delivery_map/pickup_order_map_page.dart';
+import 'package:nagpur_rider/screens/feed_page/view/map/return_pickup/return_pickup_map_page.dart';
 import 'package:nagpur_rider/screens/feed_page/view/map/delivery_map/pickup_route_map_page.dart';
 import 'package:nagpur_rider/screens/feed_page/view/map/store_pickup_route/map_delivery_page.dart';
 import 'package:nagpur_rider/screens/feed_page/view/order_detail/order_details_page.dart';
@@ -234,11 +234,8 @@ class MyAppRoute {
         pageBuilder: (context, state) {
           final params = state.extra as Map<String, dynamic>;
           final pickup = params['pickup'] as Pickups;
-          final locationType = params['locationType'] as String? ?? 'customer';
 
-          return platformPage(
-            PickupOrderMapPage(pickup: pickup, locationType: locationType),
-          );
+          return platformPage(ReturnPickupMapPage(pickup: pickup));
         },
       ),
 

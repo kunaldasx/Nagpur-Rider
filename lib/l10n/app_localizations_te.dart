@@ -2423,4 +2423,90 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get customerPhoneUnavailable => 'కస్టమర్ ఫోన్ నంబర్ అందుబాటులో లేదు';
+
+  @override
+  String get returnPickup => 'రిటర్న్ పికప్';
+
+  @override
+  String get returnStepPickup => 'దశ 1 · కస్టమర్ నుండి పికప్';
+
+  @override
+  String get returnStepToSeller => 'దశ 2 · విక్రేతకు తిరిగి ఇవ్వడం';
+
+  @override
+  String get arrivedAtCustomer => 'కస్టమర్ వద్దకు చేరుకున్నారు';
+
+  @override
+  String get arrivedAtSeller => 'విక్రేత వద్దకు చేరుకున్నారు';
+
+  @override
+  String returnItemsCount(int count) {
+    return 'రిటర్న్ ఐటమ్స్ ($count)';
+  }
+
+  @override
+  String get collectTheseItems => 'ఈ ఐటమ్స్ తీసుకోండి';
+
+  @override
+  String carryingItems(int count) {
+    return 'తీసుకెళ్తున్నవి ($count)';
+  }
+
+  @override
+  String handOverTo(String name) {
+    return '$nameకి అప్పగించండి';
+  }
+
+  @override
+  String get iHaveReachedCustomer => 'నేను కస్టమర్ వద్దకు చేరుకున్నాను';
+
+  @override
+  String get iHaveReachedSeller => 'నేను విక్రేత వద్దకు చేరుకున్నాను';
+
+  @override
+  String get haveYouReachedCustomer =>
+      'మీరు కస్టమర్ వద్దకు చేరుకున్నారా? రిటర్న్ పికప్ కోసం మీరు వచ్చారని వారికి తెలియజేయబడుతుంది.';
+
+  @override
+  String get haveYouReachedSeller => 'మీరు విక్రేత దుకాణానికి చేరుకున్నారా?';
+
+  @override
+  String get customerNotifiedRiderHere =>
+      'కస్టమర్‌కు తెలియజేయబడింది: రైడర్ రిటర్న్ పికప్ కోసం వచ్చారు';
+
+  @override
+  String get notifyingCustomer => 'కస్టమర్‌కు తెలియజేస్తోంది…';
+
+  @override
+  String get customerNotifyFailed =>
+      'కస్టమర్‌కు తెలియజేయలేకపోయాం. దయచేసి వారికి కాల్ చేయండి.';
+
+  @override
+  String get notifyAgain => 'మళ్లీ తెలియజేయండి';
+
+  @override
+  String get callCustomer => 'కస్టమర్‌కు కాల్ చేయండి';
+
+  @override
+  String get callSeller => 'విక్రేతకు కాల్ చేయండి';
+
+  @override
+  String get swipePackageCollected => 'స్వైప్: ప్యాకేజీ తీసుకున్నాను';
+
+  @override
+  String get swipeDeliveredToSeller => 'స్వైప్: విక్రేతకు అప్పగించాను';
+
+  @override
+  String get returnCompleted => 'రిటర్న్ పూర్తయింది';
+
+  @override
+  String returnDeliveredSummary(String id) {
+    return 'రిటర్న్ #$id విక్రేతకు అప్పగించబడింది';
+  }
+
+  @override
+  String get backToOrders => 'ఆర్డర్లకు తిరిగి వెళ్ళండి';
+
+  @override
+  String get sellerPhoneUnavailable => 'విక్రేత ఫోన్ నంబర్ అందుబాటులో లేదు';
 }

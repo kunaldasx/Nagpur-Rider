@@ -2389,4 +2389,89 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get customerPhoneUnavailable => 'رقم هاتف العميل غير متوفر';
+
+  @override
+  String get returnPickup => 'استلام المرتجع';
+
+  @override
+  String get returnStepPickup => 'الخطوة 1 · الاستلام من العميل';
+
+  @override
+  String get returnStepToSeller => 'الخطوة 2 · الإرجاع إلى البائع';
+
+  @override
+  String get arrivedAtCustomer => 'وصلت إلى العميل';
+
+  @override
+  String get arrivedAtSeller => 'وصلت إلى البائع';
+
+  @override
+  String returnItemsCount(int count) {
+    return 'العناصر المرتجعة ($count)';
+  }
+
+  @override
+  String get collectTheseItems => 'استلم هذه العناصر';
+
+  @override
+  String carryingItems(int count) {
+    return 'تحمل ($count)';
+  }
+
+  @override
+  String handOverTo(String name) {
+    return 'سلّم إلى $name';
+  }
+
+  @override
+  String get iHaveReachedCustomer => 'وصلت إلى العميل';
+
+  @override
+  String get iHaveReachedSeller => 'وصلت إلى البائع';
+
+  @override
+  String get haveYouReachedCustomer =>
+      'هل وصلت إلى العميل؟ سيتم إعلامه بأنك هنا لاستلام المرتجع.';
+
+  @override
+  String get haveYouReachedSeller => 'هل وصلت إلى متجر البائع؟';
+
+  @override
+  String get customerNotifiedRiderHere =>
+      'تم إعلام العميل: المندوب هنا لاستلام المرتجع';
+
+  @override
+  String get notifyingCustomer => 'جارٍ إعلام العميل…';
+
+  @override
+  String get customerNotifyFailed => 'تعذر إعلام العميل. يرجى الاتصال به.';
+
+  @override
+  String get notifyAgain => 'إعلام مرة أخرى';
+
+  @override
+  String get callCustomer => 'اتصل بالعميل';
+
+  @override
+  String get callSeller => 'اتصل بالبائع';
+
+  @override
+  String get swipePackageCollected => 'اسحب: تم استلام الطرد';
+
+  @override
+  String get swipeDeliveredToSeller => 'اسحب: تم التسليم للبائع';
+
+  @override
+  String get returnCompleted => 'اكتمل المرتجع';
+
+  @override
+  String returnDeliveredSummary(String id) {
+    return 'تم تسليم المرتجع #$id إلى البائع';
+  }
+
+  @override
+  String get backToOrders => 'العودة إلى الطلبات';
+
+  @override
+  String get sellerPhoneUnavailable => 'رقم هاتف البائع غير متوفر';
 }

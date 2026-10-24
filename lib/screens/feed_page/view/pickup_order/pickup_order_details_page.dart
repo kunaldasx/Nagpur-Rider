@@ -220,65 +220,49 @@ class _PickupOrderDetailsPageState extends State<PickupOrderDetailsPage> {
 
                         // // Earnings
                         // ReturnEarningsDetailsSection(
-                          // pickup: pickup,
-                          // isExpanded: _isEarningsExpanded,
-                          // onToggle:
-                              // () => setState(
-                                // () =>
-                                    // _isEarningsExpanded = !_isEarningsExpanded,
-                              // ),
+                        // pickup: pickup,
+                        // isExpanded: _isEarningsExpanded,
+                        // onToggle:
+                        // () => setState(
+                        // () =>
+                        // _isEarningsExpanded = !_isEarningsExpanded,
                         // ),
-
+                        // ),
                         SizedBox(height: 20.h),
 
-                        // Location button - Show based on status
-                        if (currentStatus == 'pending')
+                        // Opens the return map on the right leg for the status
+                        if (currentStatus != 'delivered_to_seller')
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                context.push(
+                              onPressed: () async {
+                                final detailsBloc =
+                                    context.read<PickupOrderDetailsBloc>();
+                                await context.push(
                                   AppRoutes.pickupOrderMap,
-                                  extra: {
-                                    'pickup': pickup,
-                                    'locationType': 'customer',
-                                  },
+                                  extra: {'pickup': pickup},
+                                );
+                                // The map may have moved the pickup on
+                                if (!mounted || detailsBloc.isClosed) return;
+                                detailsBloc.add(
+                                  FetchPickupOrderDetails(widget.returnId),
                                 );
                               },
                               icon: const Icon(Icons.location_on),
                               label: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.goToCustomerLocation,
+                                currentStatus == 'picked_up'
+                                    ? AppLocalizations.of(
+                                      context,
+                                    )!.goToSellerLocation
+                                    : AppLocalizations.of(
+                                      context,
+                                    )!.goToCustomerLocation,
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                                minimumSize: Size(double.infinity, 50.h),
-                              ),
-                            ),
-                          ),
-                        if (currentStatus == 'picked_up')
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                context.push(
-                                  AppRoutes.pickupOrderMap,
-                                  extra: {
-                                    'pickup': pickup,
-                                    'locationType': 'seller',
-                                  },
-                                );
-                              },
-                              icon: const Icon(Icons.location_on),
-                              label: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.goToSellerLocation,
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
+                                backgroundColor:
+                                    currentStatus == 'picked_up'
+                                        ? Colors.red
+                                        : Colors.orange,
                                 foregroundColor: Colors.white,
                                 minimumSize: Size(double.infinity, 50.h),
                               ),

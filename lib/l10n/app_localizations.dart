@@ -4593,6 +4593,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Customer phone number not available'**
   String get customerPhoneUnavailable;
+
+  /// No description provided for @returnPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Return Pickup'**
+  String get returnPickup;
+
+  /// No description provided for @returnStepPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 1 · Pickup from customer'**
+  String get returnStepPickup;
+
+  /// No description provided for @returnStepToSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 2 · Return to seller'**
+  String get returnStepToSeller;
+
+  /// No description provided for @arrivedAtCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived at customer'**
+  String get arrivedAtCustomer;
+
+  /// No description provided for @arrivedAtSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived at seller'**
+  String get arrivedAtSeller;
+
+  /// No description provided for @returnItemsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Return items ({count})'**
+  String returnItemsCount(int count);
+
+  /// No description provided for @collectTheseItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Collect these items'**
+  String get collectTheseItems;
+
+  /// No description provided for @carryingItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Carrying ({count})'**
+  String carryingItems(int count);
+
+  /// No description provided for @handOverTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand over to {name}'**
+  String handOverTo(String name);
+
+  /// No description provided for @iHaveReachedCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve reached customer'**
+  String get iHaveReachedCustomer;
+
+  /// No description provided for @iHaveReachedSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve reached seller'**
+  String get iHaveReachedSeller;
+
+  /// No description provided for @haveYouReachedCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Have you reached the customer? They will be notified that you are here for the return pickup.'**
+  String get haveYouReachedCustomer;
+
+  /// No description provided for @haveYouReachedSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Have you reached the seller\'s store?'**
+  String get haveYouReachedSeller;
+
+  /// No description provided for @customerNotifiedRiderHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer notified: your rider is here for the return pickup'**
+  String get customerNotifiedRiderHere;
+
+  /// No description provided for @notifyingCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifying customer…'**
+  String get notifyingCustomer;
+
+  /// No description provided for @customerNotifyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t notify the customer. Please call them.'**
+  String get customerNotifyFailed;
+
+  /// No description provided for @notifyAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify again'**
+  String get notifyAgain;
+
+  /// No description provided for @callCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Call customer'**
+  String get callCustomer;
+
+  /// No description provided for @callSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Call seller'**
+  String get callSeller;
+
+  /// No description provided for @swipePackageCollected.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe: Package collected'**
+  String get swipePackageCollected;
+
+  /// No description provided for @swipeDeliveredToSeller.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe: Delivered to seller'**
+  String get swipeDeliveredToSeller;
+
+  /// No description provided for @returnCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Return completed'**
+  String get returnCompleted;
+
+  /// No description provided for @returnDeliveredSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Return #{id} delivered to seller'**
+  String returnDeliveredSummary(String id);
+
+  /// No description provided for @backToOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to orders'**
+  String get backToOrders;
+
+  /// No description provided for @sellerPhoneUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Seller phone number not available'**
+  String get sellerPhoneUnavailable;
 }
 
 class _AppLocalizationsDelegate
