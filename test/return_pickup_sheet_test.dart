@@ -51,7 +51,6 @@ Future<_Taps> _pumpSheet(
   WidgetTester tester, {
   required ReturnPickupLeg leg,
   bool hasArrived = false,
-  CustomerNotifyStatus notifyStatus = CustomerNotifyStatus.none,
   RouteOption? route = _route,
   bool smallPhone = false,
   bool isSubmitting = false,
@@ -83,7 +82,6 @@ Future<_Taps> _pumpSheet(
                     pickup: _pickup,
                     leg: leg,
                     hasArrived: hasArrived,
-                    notifyStatus: notifyStatus,
                     isSubmitting: isSubmitting,
                     isDarkTheme: false,
                     route: route,
@@ -91,7 +89,6 @@ Future<_Taps> _pumpSheet(
                     onShowSteps: taps.call('steps'),
                     onCall: taps.call('call'),
                     onReached: taps.call('reached'),
-                    onRetryNotify: taps.call('retry'),
                     onCollected: taps.call('collected'),
                     onDelivered: taps.call('delivered'),
                   ),
@@ -101,7 +98,7 @@ Future<_Taps> _pumpSheet(
       ),
     ),
   );
-  // Sending/submitting has a continuously animating progress indicator.
+  // Submitting has a continuously animating progress indicator.
   await tester.pump();
   return taps;
 }
@@ -136,54 +133,25 @@ void main() {
     expect(find.byKey(const ValueKey('return_start')), findsOneWidget);
   });
 
-  testWidgets('arrived at customer: notified banner and collect swipe', (
+  testWidgets('arrived at customer: local arrival and collect swipe', (
     tester,
   ) async {
-    await _pumpSheet(
-      tester,
-      leg: ReturnPickupLeg.toCustomer,
-      hasArrived: true,
-      notifyStatus: CustomerNotifyStatus.sent,
-    );
+    await _pumpSheet(tester, leg: ReturnPickupLeg.toCustomer, hasArrived: true);
 
     expect(find.text('ARRIVED AT CUSTOMER'), findsOneWidget);
-    expect(
-      find.text('Customer notified: your rider is here for the return pickup'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Customer notified'), findsNothing);
     expect(find.text('Collect these items'), findsOneWidget);
     expect(find.text('Call customer'), findsOneWidget);
     expect(find.text('Swipe: Package collected'), findsOneWidget);
     expect(find.byKey(const ValueKey('return_start')), findsNothing);
   });
 
-  testWidgets('failed notification offers a retry', (tester) async {
+  testWidgets('collection swipe requests OTP verification', (tester) async {
     final taps = await _pumpSheet(
       tester,
       leg: ReturnPickupLeg.toCustomer,
       hasArrived: true,
-      notifyStatus: CustomerNotifyStatus.failed,
     );
-
-    expect(
-      find.text("Couldn't notify the customer. Please call them."),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('Notify again'));
-    expect(taps.log, ['retry']);
-  });
-
-  testWidgets('sending a notification leaves collection available', (
-    tester,
-  ) async {
-    final taps = await _pumpSheet(
-      tester,
-      leg: ReturnPickupLeg.toCustomer,
-      hasArrived: true,
-      notifyStatus: CustomerNotifyStatus.sending,
-    );
-    expect(find.text('Notifying customer…'), findsOneWidget);
-    expect(find.text('Notify again'), findsNothing);
     final swipe = find.byKey(const ValueKey('return_swipe_toCustomer'));
     await tester.ensureVisible(swipe);
     await tester.dragFrom(
@@ -251,7 +219,6 @@ void main() {
           tester,
           leg: leg,
           hasArrived: arrived,
-          notifyStatus: CustomerNotifyStatus.failed,
           smallPhone: true,
         );
         expect(tester.takeException(), isNull, reason: '$leg arrived=$arrived');

@@ -4663,7 +4663,7 @@ abstract class AppLocalizations {
   /// No description provided for @haveYouReachedCustomer.
   ///
   /// In en, this message translates to:
-  /// **'Have you reached the customer? They will be notified that you are here for the return pickup.'**
+  /// **'Have you reached the customer for the return pickup?'**
   String get haveYouReachedCustomer;
 
   /// No description provided for @haveYouReachedSeller.
@@ -4671,30 +4671,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Have you reached the seller\'s store?'**
   String get haveYouReachedSeller;
-
-  /// No description provided for @customerNotifiedRiderHere.
-  ///
-  /// In en, this message translates to:
-  /// **'Customer notified: your rider is here for the return pickup'**
-  String get customerNotifiedRiderHere;
-
-  /// No description provided for @notifyingCustomer.
-  ///
-  /// In en, this message translates to:
-  /// **'Notifying customer…'**
-  String get notifyingCustomer;
-
-  /// No description provided for @customerNotifyFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t notify the customer. Please call them.'**
-  String get customerNotifyFailed;
-
-  /// No description provided for @notifyAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Notify again'**
-  String get notifyAgain;
 
   /// No description provided for @callCustomer.
   ///
@@ -4731,6 +4707,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to orders'**
   String get backToOrders;
+
+  /// No description provided for @returnCustomerOtpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify customer pickup'**
+  String get returnCustomerOtpTitle;
+
+  /// No description provided for @returnCustomerOtpHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the customer for the six-digit OTP sent when you accepted this return.'**
+  String get returnCustomerOtpHelp;
+
+  /// No description provided for @returnSellerOtpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify seller handover'**
+  String get returnSellerOtpTitle;
+
+  /// No description provided for @returnSellerOtpHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the seller for the separate six-digit OTP sent after pickup.'**
+  String get returnSellerOtpHelp;
+
+  /// No description provided for @returnOtpLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Six-digit OTP'**
+  String get returnOtpLabel;
+
+  /// No description provided for @returnOtpInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid six-digit OTP.'**
+  String get returnOtpInvalid;
+
+  /// No description provided for @returnVerifyOtp.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify OTP'**
+  String get returnVerifyOtp;
+
+  /// No description provided for @returnVerifyingOtp.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying…'**
+  String get returnVerifyingOtp;
 }
 
 class _AppLocalizationsDelegate

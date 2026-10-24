@@ -22,7 +22,9 @@ class ApiBaseHelper {
               debugPrint('Method: ${options.method}');
               debugPrint('Headers: ${options.headers}');
               debugPrint('Query params: ${options.queryParameters}');
-              debugPrint('Body: ${options.data}');
+              debugPrint(
+                'Body: ${options.extra['redactBody'] == true ? '[REDACTED]' : options.data}',
+              );
               return handler.next(options);
             },
             onResponse: (response, handler) {
@@ -449,6 +451,7 @@ class ApiBaseHelper {
     required String url,
     bool? useAuthToken,
     Map<String, dynamic>? queryParameters,
+    bool redactBody = false,
   }) async {
     try {
       body ??= {};
@@ -458,7 +461,10 @@ class ApiBaseHelper {
       final response = await _dio.put(
         url,
         data: body,
-        options: Options(headers: authHeaders),
+        options: Options(
+          headers: authHeaders,
+          extra: {'redactBody': redactBody},
+        ),
       );
 
       if (response.statusCode != 200) {}

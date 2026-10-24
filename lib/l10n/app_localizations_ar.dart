@@ -2430,24 +2430,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get iHaveReachedSeller => 'وصلت إلى البائع';
 
   @override
-  String get haveYouReachedCustomer =>
-      'هل وصلت إلى العميل؟ سيتم إعلامه بأنك هنا لاستلام المرتجع.';
+  String get haveYouReachedCustomer => 'هل وصلت إلى العميل لاستلام المرتجع؟';
 
   @override
   String get haveYouReachedSeller => 'هل وصلت إلى متجر البائع؟';
-
-  @override
-  String get customerNotifiedRiderHere =>
-      'تم إعلام العميل: المندوب هنا لاستلام المرتجع';
-
-  @override
-  String get notifyingCustomer => 'جارٍ إعلام العميل…';
-
-  @override
-  String get customerNotifyFailed => 'تعذر إعلام العميل. يرجى الاتصال به.';
-
-  @override
-  String get notifyAgain => 'إعلام مرة أخرى';
 
   @override
   String get callCustomer => 'اتصل بالعميل';
@@ -2468,4 +2454,30 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get backToOrders => 'العودة إلى الطلبات';
+
+  @override
+  String get returnCustomerOtpTitle => 'تأكيد الاستلام من العميل';
+
+  @override
+  String get returnCustomerOtpHelp =>
+      'اطلب من العميل رمز OTP المكون من ستة أرقام الذي أُرسل عند قبول هذا المرتجع.';
+
+  @override
+  String get returnSellerOtpTitle => 'تأكيد التسليم للبائع';
+
+  @override
+  String get returnSellerOtpHelp =>
+      'اطلب من البائع رمز OTP المنفصل المكون من ستة أرقام الذي أُرسل بعد الاستلام.';
+
+  @override
+  String get returnOtpLabel => 'رمز OTP من ستة أرقام';
+
+  @override
+  String get returnOtpInvalid => 'أدخل رمز OTP صالحًا من ستة أرقام.';
+
+  @override
+  String get returnVerifyOtp => 'تحقق من OTP';
+
+  @override
+  String get returnVerifyingOtp => 'جارٍ التحقق…';
 }

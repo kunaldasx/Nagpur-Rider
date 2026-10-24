@@ -2486,24 +2486,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get haveYouReachedCustomer =>
-      'Êtes-vous arrivé chez le client ? Il sera averti que vous êtes là pour le retrait du retour.';
+      'Êtes-vous arrivé chez le client pour le retrait du retour ?';
 
   @override
   String get haveYouReachedSeller => 'Êtes-vous arrivé au magasin du vendeur ?';
-
-  @override
-  String get customerNotifiedRiderHere =>
-      'Client averti : votre livreur est là pour le retrait du retour';
-
-  @override
-  String get notifyingCustomer => 'Notification du client…';
-
-  @override
-  String get customerNotifyFailed =>
-      'Impossible d\'avertir le client. Veuillez l\'appeler.';
-
-  @override
-  String get notifyAgain => 'Avertir à nouveau';
 
   @override
   String get callCustomer => 'Appeler le client';
@@ -2524,4 +2510,30 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get backToOrders => 'Retour aux commandes';
+
+  @override
+  String get returnCustomerOtpTitle => 'Vérifier le retrait client';
+
+  @override
+  String get returnCustomerOtpHelp =>
+      'Demandez au client le code OTP à six chiffres envoyé lors de l’acceptation de ce retour.';
+
+  @override
+  String get returnSellerOtpTitle => 'Vérifier la remise au vendeur';
+
+  @override
+  String get returnSellerOtpHelp =>
+      'Demandez au vendeur le code OTP distinct à six chiffres envoyé après le retrait.';
+
+  @override
+  String get returnOtpLabel => 'Code OTP à six chiffres';
+
+  @override
+  String get returnOtpInvalid => 'Saisissez un code OTP valide à six chiffres.';
+
+  @override
+  String get returnVerifyOtp => 'Vérifier le code OTP';
+
+  @override
+  String get returnVerifyingOtp => 'Vérification…';
 }

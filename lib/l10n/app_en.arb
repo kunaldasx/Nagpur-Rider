@@ -846,12 +846,8 @@
   },
   "iHaveReachedCustomer": "I've reached customer",
   "iHaveReachedSeller": "I've reached seller",
-  "haveYouReachedCustomer": "Have you reached the customer? They will be notified that you are here for the return pickup.",
+  "haveYouReachedCustomer": "Have you reached the customer for the return pickup?",
   "haveYouReachedSeller": "Have you reached the seller's store?",
-  "customerNotifiedRiderHere": "Customer notified: your rider is here for the return pickup",
-  "notifyingCustomer": "Notifying customer…",
-  "customerNotifyFailed": "Couldn't notify the customer. Please call them.",
-  "notifyAgain": "Notify again",
   "callCustomer": "Call customer",
   "swipePackageCollected": "Swipe: Package collected",
   "swipeDeliveredToSeller": "Swipe: Delivered to seller",
@@ -864,5 +860,13 @@
       }
     }
   },
-  "backToOrders": "Back to orders"
+  "backToOrders": "Back to orders",
+  "returnCustomerOtpTitle": "Verify customer pickup",
+  "returnCustomerOtpHelp": "Ask the customer for the six-digit OTP sent when you accepted this return.",
+  "returnSellerOtpTitle": "Verify seller handover",
+  "returnSellerOtpHelp": "Ask the seller for the separate six-digit OTP sent after pickup.",
+  "returnOtpLabel": "Six-digit OTP",
+  "returnOtpInvalid": "Enter a valid six-digit OTP.",
+  "returnVerifyOtp": "Verify OTP",
+  "returnVerifyingOtp": "Verifying…"
 }

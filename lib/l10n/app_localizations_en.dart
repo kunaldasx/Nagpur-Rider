@@ -2444,24 +2444,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get haveYouReachedCustomer =>
-      'Have you reached the customer? They will be notified that you are here for the return pickup.';
+      'Have you reached the customer for the return pickup?';
 
   @override
   String get haveYouReachedSeller => 'Have you reached the seller\'s store?';
-
-  @override
-  String get customerNotifiedRiderHere =>
-      'Customer notified: your rider is here for the return pickup';
-
-  @override
-  String get notifyingCustomer => 'Notifying customer…';
-
-  @override
-  String get customerNotifyFailed =>
-      'Couldn\'t notify the customer. Please call them.';
-
-  @override
-  String get notifyAgain => 'Notify again';
 
   @override
   String get callCustomer => 'Call customer';
@@ -2482,4 +2468,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToOrders => 'Back to orders';
+
+  @override
+  String get returnCustomerOtpTitle => 'Verify customer pickup';
+
+  @override
+  String get returnCustomerOtpHelp =>
+      'Ask the customer for the six-digit OTP sent when you accepted this return.';
+
+  @override
+  String get returnSellerOtpTitle => 'Verify seller handover';
+
+  @override
+  String get returnSellerOtpHelp =>
+      'Ask the seller for the separate six-digit OTP sent after pickup.';
+
+  @override
+  String get returnOtpLabel => 'Six-digit OTP';
+
+  @override
+  String get returnOtpInvalid => 'Enter a valid six-digit OTP.';
+
+  @override
+  String get returnVerifyOtp => 'Verify OTP';
+
+  @override
+  String get returnVerifyingOtp => 'Verifying…';
 }

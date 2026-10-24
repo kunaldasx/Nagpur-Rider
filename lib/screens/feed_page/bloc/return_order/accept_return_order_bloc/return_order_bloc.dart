@@ -4,14 +4,18 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:nagpur_rider/config/api_base_helper.dart';
 import 'package:nagpur_rider/screens/feed_page/repo/return_order_repo.dart';
+import 'package:nagpur_rider/screens/feed_page/model/return_orders_list_model.dart';
 
 part 'return_order_event.dart';
 part 'return_order_state.dart';
 
 class ReturnOrderBloc extends Bloc<ReturnOrderEvent, ReturnOrderState> {
-  final ReturnOrderRepo _repo = ReturnOrderRepo();
+  final ReturnOrderRepo _repo;
+  bool _isAccepting = false;
 
-  ReturnOrderBloc() : super(ReturnOrderInitial()) {
+  ReturnOrderBloc({ReturnOrderRepo? repository})
+    : _repo = repository ?? ReturnOrderRepo(),
+      super(ReturnOrderInitial()) {
     on<AcceptReturnOrder>(_onAcceptReturnOrder);
   }
 
@@ -19,6 +23,8 @@ class ReturnOrderBloc extends Bloc<ReturnOrderEvent, ReturnOrderState> {
     AcceptReturnOrder event,
     Emitter<ReturnOrderState> emit,
   ) async {
+    if (_isAccepting) return;
+    _isAccepting = true;
     try {
       emit(ReturnOrderLoading());
 
@@ -29,7 +35,14 @@ class ReturnOrderBloc extends Bloc<ReturnOrderEvent, ReturnOrderState> {
             response['message'] ?? 'Return order accepted successfully';
 
         emit(
-          AcceptReturnOrderSuccess(message: message, returnId: event.returnId),
+          AcceptReturnOrderSuccess(
+            message: message,
+            returnId: event.returnId,
+            pickup: ReturnOrderRepo.pickupFromResponse(
+              response,
+              event.returnId,
+            ),
+          ),
         );
 
         emit(ReturnOrderActionCompleted(event.returnId));
@@ -41,13 +54,15 @@ class ReturnOrderBloc extends Bloc<ReturnOrderEvent, ReturnOrderState> {
         );
       }
     } on ApiException catch (e) {
-      if (kDebugMode) {
-        emit(ReturnOrderError("Network error: $e"));
-      }
+      emit(
+        ReturnOrderError(
+          kDebugMode ? "Network error: $e" : "Network error. Please try again.",
+        ),
+      );
     } catch (e) {
-      if (kDebugMode) {
-        emit(ReturnOrderError("Something went wrong. Please try again."));
-      }
+      emit(ReturnOrderError("Something went wrong. Please try again."));
+    } finally {
+      _isAccepting = false;
     }
   }
 }

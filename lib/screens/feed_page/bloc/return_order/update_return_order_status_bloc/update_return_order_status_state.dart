@@ -15,16 +15,20 @@ final class UpdateReturnOrderStatusSuccess
     extends UpdateReturnOrderStatusState {
   final String message;
   final String returnId;
+  final Pickups pickup;
 
   UpdateReturnOrderStatusSuccess({
     required this.message,
     required this.returnId,
+    required this.pickup,
   });
 }
 
 final class UpdateReturnOrderStatusFailed extends UpdateReturnOrderStatusState {
   final String error;
-  UpdateReturnOrderStatusFailed(this.error);
+  final String? code;
+  final Pickups? pickup;
+  UpdateReturnOrderStatusFailed(this.error, {this.code, this.pickup});
 }
 
 class ReturnOrderStatusCompleted extends UpdateReturnOrderStatusState {

@@ -1,6 +1,5 @@
 // widgets/pickup_order/my_pickups_card.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nagpur_rider/config/colors.dart';
@@ -8,11 +7,8 @@ import 'package:nagpur_rider/l10n/app_localizations.dart';
 import 'package:nagpur_rider/router/app_routes.dart';
 import 'package:nagpur_rider/utils/widgets/custom_card.dart';
 import 'package:nagpur_rider/utils/widgets/custom_text.dart';
-import 'package:nagpur_rider/utils/widgets/toast_message.dart';
-import 'package:nagpur_rider/utils/currency_formatter.dart';
 import '../../model/return_orders_list_model.dart';
-import '../../bloc/return_order/pickup_orders_list_bloc/pickup_order_list_bloc.dart';
-import '../../bloc/return_order/update_return_order_status_bloc/update_return_order_status_bloc.dart';
+import '../../view/map/return_pickup/return_handoff_dialog.dart';
 
 class MyPickupsCard extends StatelessWidget {
   final Pickups pickup;
@@ -21,10 +17,7 @@ class MyPickupsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => UpdateReturnOrderStatusBloc(),
-      child: _MyPickupsCardContent(pickup: pickup),
-    );
+    return _MyPickupsCardContent(pickup: pickup);
   }
 }
 
@@ -53,152 +46,6 @@ class _MyPickupsCardContent extends StatelessWidget {
       default:
         return AppLocalizations.of(context)!.assigned;
     }
-  }
-
-  List<String> _getAvailableStatusOptions(String currentStatus) {
-    switch (currentStatus) {
-      case 'pending':
-      case 'assigned':
-        return ['picked_up'];
-      case 'picked_up':
-        return ['delivered_to_seller'];
-      default:
-        return [];
-    }
-  }
-
-  String _getStatusDisplayName(String status, BuildContext context) {
-    switch (status) {
-      case 'picked_up':
-        return AppLocalizations.of(context)!.pickup;
-      case 'delivered_to_seller':
-        return AppLocalizations.of(context)!.delivered;
-      case 'pending':
-      case 'assigned':
-        return AppLocalizations.of(context)!.assigned;
-      default:
-        return status;
-    }
-  }
-
-  void _showStatusBottomSheet(
-    BuildContext context,
-    String currentStatus,
-    int pickupId,
-  ) {
-    final availableOptions = _getAvailableStatusOptions(currentStatus);
-
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (bottomSheetContext) {
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              CustomText(
-                text: AppLocalizations.of(context)!.updateStatus,
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-              ),
-              SizedBox(height: 8.h),
-              CustomText(
-                text:
-                    'Current Status: ${_getStatusDisplayName(currentStatus, context)}',
-                fontSize: 14.sp,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              SizedBox(height: 20.h),
-
-              // Status Options
-              CustomText(
-                text: 'Select new status:',
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.8),
-              ),
-              SizedBox(height: 12.h),
-
-              ...availableOptions.map((status) {
-                return Padding(
-                  padding: EdgeInsets.only(bottom: 8.h),
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.pop(bottomSheetContext);
-                      context.read<UpdateReturnOrderStatusBloc>().add(
-                        UpdateReturnOrderStatus(
-                          returnId: pickupId.toString(),
-                          status: status,
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(14.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryColor.withValues(alpha: 0.08),
-                        border: Border.all(
-                          color: AppColors.primaryColor.withValues(alpha: 0.2),
-                          width: 1.5,
-                        ),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          CustomText(
-                            text: _getStatusDisplayName(status, context),
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primaryColor,
-                          ),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            color: AppColors.primaryColor,
-                            size: 20.sp,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-
-              SizedBox(height: 12.h),
-
-              // Close Button
-              GestureDetector(
-                onTap: () => Navigator.pop(bottomSheetContext),
-                child: Container(
-                  padding: EdgeInsets.all(14.w),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Center(
-                    child: CustomText(
-                      text: 'Cancel',
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 8.h),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -329,68 +176,46 @@ class _MyPickupsCardContent extends StatelessWidget {
 
               // // Earnings
               // CustomText(
-                // text: AppLocalizations.of(context)!.earnings,
-                // fontSize: 12.sp,
-                // color: Theme.of(
-                  // context,
-                // ).colorScheme.onSurface.withValues(alpha: 0.6),
+              // text: AppLocalizations.of(context)!.earnings,
+              // fontSize: 12.sp,
+              // color: Theme.of(
+              // context,
+              // ).colorScheme.onSurface.withValues(alpha: 0.6),
               // ),
               // CustomText(
-                // text: CurrencyFormatter.formatAmount(
-                  // context,
-                  // pickup.earnings?.total,
-                // ),
-                // fontSize: 18.sp,
-                // fontWeight: FontWeight.bold,
-                // color: AppColors.primaryColor,
+              // text: CurrencyFormatter.formatAmount(
+              // context,
+              // pickup.earnings?.total,
+              // ),
+              // fontSize: 18.sp,
+              // fontWeight: FontWeight.bold,
+              // color: AppColors.primaryColor,
               // ),
 
               // SizedBox(height: 16.h),
 
               // Update Button or Success Message
               if (!isDelivered)
-                BlocConsumer<
-                  UpdateReturnOrderStatusBloc,
-                  UpdateReturnOrderStatusState
-                >(
-                  listener: (context, state) {
-                    if (state is UpdateReturnOrderStatusSuccess) {
-                      ToastManager.show(
-                        context: context,
-                        message: state.message,
-                        type: ToastType.success,
-                      );
-                      context.read<PickupOrderListBloc>().add(
-                        FetchPickupOrders(forceRefresh: true),
-                      );
-                    } else if (state is UpdateReturnOrderStatusFailed) {
-                      ToastManager.show(
-                        context: context,
-                        message: state.error,
-                        type: ToastType.error,
-                      );
-                    }
-                  },
-                  builder: (context, state) {
-                    if (state is UpdateReturnOrderStatusLoading) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    return ElevatedButton.icon(
-                      onPressed: () {
-                        _showStatusBottomSheet(context, status, pickup.id ?? 0);
-                      },
-                      icon: Icon(Icons.update, size: 20.sp),
-                      label: Text(AppLocalizations.of(context)!.updateStatus),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryColor,
-                        foregroundColor: Colors.white,
-                        minimumSize: Size(double.infinity, 48.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
+                ElevatedButton.icon(
+                  onPressed:
+                      () => showReturnHandoffDialog(
+                        context,
+                        pickup: pickup,
+                        status:
+                            status == 'picked_up'
+                                ? 'delivered_to_seller'
+                                : 'picked_up',
                       ),
-                    );
-                  },
+                  icon: Icon(Icons.verified_user, size: 20.sp),
+                  label: Text(AppLocalizations.of(context)!.updateStatus),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size(double.infinity, 48.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
                 )
               else
                 Row(

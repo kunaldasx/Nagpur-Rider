@@ -19,7 +19,6 @@ class ReturnPickupSheet extends StatelessWidget {
   final Pickups pickup;
   final ReturnPickupLeg leg;
   final bool hasArrived;
-  final CustomerNotifyStatus notifyStatus;
   final bool isSubmitting;
   final bool isDarkTheme;
 
@@ -34,7 +33,6 @@ class ReturnPickupSheet extends StatelessWidget {
   final VoidCallback onShowSteps;
   final VoidCallback onCall;
   final VoidCallback onReached;
-  final VoidCallback onRetryNotify;
   final VoidCallback onCollected;
   final VoidCallback onDelivered;
 
@@ -43,7 +41,6 @@ class ReturnPickupSheet extends StatelessWidget {
     required this.pickup,
     required this.leg,
     required this.hasArrived,
-    required this.notifyStatus,
     required this.isSubmitting,
     required this.isDarkTheme,
     required this.route,
@@ -51,7 +48,6 @@ class ReturnPickupSheet extends StatelessWidget {
     required this.onShowSteps,
     required this.onCall,
     required this.onReached,
-    required this.onRetryNotify,
     required this.onCollected,
     required this.onDelivered,
     this.extraMinutes = 0,
@@ -108,10 +104,6 @@ class ReturnPickupSheet extends StatelessWidget {
                       ? ReturnPickupFlow.customerAddress(pickup)
                       : ReturnPickupFlow.sellerAddress(pickup),
             ),
-            if (_toCustomer && hasArrived) ...[
-              SizedBox(height: 8.h),
-              _NotifyBanner(status: notifyStatus, onRetry: onRetryNotify),
-            ],
             SizedBox(height: 8.h),
             ReturnItemsList(
               pickup: pickup,
@@ -438,76 +430,6 @@ class _AddressRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _NotifyBanner extends StatelessWidget {
-  final CustomerNotifyStatus status;
-  final VoidCallback onRetry;
-
-  const _NotifyBanner({required this.status, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    if (status == CustomerNotifyStatus.none) return const SizedBox.shrink();
-
-    final failed = status == CustomerNotifyStatus.failed;
-    final sending = status == CustomerNotifyStatus.sending;
-    final color = failed ? _orange : _green;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10.r),
-      ),
-      child: Row(
-        children: [
-          if (sending)
-            SizedBox(
-              width: 14.sp,
-              height: 14.sp,
-              child: const CircularProgressIndicator(strokeWidth: 2),
-            )
-          else
-            Icon(
-              failed ? Icons.notifications_off : Icons.notifications_active,
-              color: color,
-              size: 16.sp,
-            ),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: CustomText(
-              text:
-                  sending
-                      ? l10n.notifyingCustomer
-                      : failed
-                      ? l10n.customerNotifyFailed
-                      : l10n.customerNotifiedRiderHere,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-              color: color,
-              maxLines: 2,
-            ),
-          ),
-          if (failed)
-            TextButton(
-              onPressed: onRetry,
-              style: TextButton.styleFrom(
-                foregroundColor: color,
-                padding: EdgeInsets.symmetric(horizontal: 8.w),
-                minimumSize: Size.zero,
-              ),
-              child: Text(
-                l10n.notifyAgain,
-                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

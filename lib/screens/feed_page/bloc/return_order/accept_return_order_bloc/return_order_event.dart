@@ -10,10 +10,3 @@ final class AcceptReturnOrder extends ReturnOrderEvent {
 
   AcceptReturnOrder({required this.returnId});
 }
-
-final class UpdateReturnOrderStatus extends ReturnOrderEvent {
-  final String returnId;
-  final String status;
-
-  UpdateReturnOrderStatus({required this.returnId, required this.status});
-}

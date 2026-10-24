@@ -5,9 +5,6 @@ import '../../../model/return_orders_list_model.dart';
 /// Which trip of a return pickup the rider is on.
 enum ReturnPickupLeg { toCustomer, toSeller, completed }
 
-/// Result of telling the backend the rider reached the customer.
-enum CustomerNotifyStatus { none, sending, sent, failed }
-
 /// Pure helpers for the return pickup map, kept free of Flutter state so
 /// they can be unit tested.
 class ReturnPickupFlow {

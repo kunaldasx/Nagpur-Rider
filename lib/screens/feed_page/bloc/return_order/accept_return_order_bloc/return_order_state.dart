@@ -12,8 +12,13 @@ class ReturnOrderLoading extends ReturnOrderState {}
 class AcceptReturnOrderSuccess extends ReturnOrderState {
   final String message;
   final String returnId; // useful for UI to remove/update specific item
+  final Pickups pickup;
 
-  AcceptReturnOrderSuccess({required this.message, required this.returnId});
+  AcceptReturnOrderSuccess({
+    required this.message,
+    required this.returnId,
+    required this.pickup,
+  });
 }
 
 class ReturnOrderError extends ReturnOrderState {

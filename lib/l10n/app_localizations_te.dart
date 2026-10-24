@@ -2465,24 +2465,10 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get haveYouReachedCustomer =>
-      'మీరు కస్టమర్ వద్దకు చేరుకున్నారా? రిటర్న్ పికప్ కోసం మీరు వచ్చారని వారికి తెలియజేయబడుతుంది.';
+      'రిటర్న్ పికప్ కోసం కస్టమర్ వద్దకు చేరుకున్నారా?';
 
   @override
   String get haveYouReachedSeller => 'మీరు విక్రేత దుకాణానికి చేరుకున్నారా?';
-
-  @override
-  String get customerNotifiedRiderHere =>
-      'కస్టమర్‌కు తెలియజేయబడింది: రైడర్ రిటర్న్ పికప్ కోసం వచ్చారు';
-
-  @override
-  String get notifyingCustomer => 'కస్టమర్‌కు తెలియజేస్తోంది…';
-
-  @override
-  String get customerNotifyFailed =>
-      'కస్టమర్‌కు తెలియజేయలేకపోయాం. దయచేసి వారికి కాల్ చేయండి.';
-
-  @override
-  String get notifyAgain => 'మళ్లీ తెలియజేయండి';
 
   @override
   String get callCustomer => 'కస్టమర్‌కు కాల్ చేయండి';
@@ -2503,4 +2489,30 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get backToOrders => 'ఆర్డర్లకు తిరిగి వెళ్ళండి';
+
+  @override
+  String get returnCustomerOtpTitle => 'కస్టమర్ పికప్‌ను ధృవీకరించండి';
+
+  @override
+  String get returnCustomerOtpHelp =>
+      'ఈ రిటర్న్‌ను అంగీకరించినప్పుడు కస్టమర్‌కు పంపిన ఆరు అంకెల OTP అడగండి.';
+
+  @override
+  String get returnSellerOtpTitle => 'విక్రేతకు అప్పగింతను ధృవీకరించండి';
+
+  @override
+  String get returnSellerOtpHelp =>
+      'పికప్ తర్వాత విక్రేతకు పంపిన వేరే ఆరు అంకెల OTP అడగండి.';
+
+  @override
+  String get returnOtpLabel => 'ఆరు అంకెల OTP';
+
+  @override
+  String get returnOtpInvalid => 'చెల్లుబాటు అయ్యే ఆరు అంకెల OTP నమోదు చేయండి.';
+
+  @override
+  String get returnVerifyOtp => 'OTP ధృవీకరించండి';
+
+  @override
+  String get returnVerifyingOtp => 'ధృవీకరిస్తోంది…';
 }

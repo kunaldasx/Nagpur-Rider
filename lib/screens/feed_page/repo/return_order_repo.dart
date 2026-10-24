@@ -1,7 +1,26 @@
 import 'package:nagpur_rider/config/api_base_helper.dart';
 import 'package:nagpur_rider/config/api_routes.dart';
+import '../model/return_orders_list_model.dart';
 
 class ReturnOrderRepo {
+  static Pickups pickupFromResponse(
+    Map<String, dynamic> response,
+    String returnId,
+  ) {
+    final pickup = Pickups.fromJson(
+      response['data']['pickup'] as Map<String, dynamic>,
+    );
+    if (pickup.id.toString() != returnId ||
+        ![
+          'assigned',
+          'picked_up',
+          'delivered_to_seller',
+        ].contains(pickup.pickupStatus)) {
+      throw const FormatException('Invalid return pickup response');
+    }
+    return pickup;
+  }
+
   Future<Map<String, dynamic>> getReturnOrder({int? limit, int? offset}) async {
     try {
       Map<String, dynamic> body = {};
@@ -41,35 +60,22 @@ class ReturnOrderRepo {
 
   Future<Map<String, dynamic>> updateReturnOrderStatus(
     String returnId,
-    String status,
-  ) async {
+    String status, {
+    required String otp,
+  }) async {
     try {
-      final Map<String, dynamic> body = {'status': status};
+      final Map<String, dynamic> body = {'status': status, 'otp': otp};
 
       final response = await ApiBaseHelper.put(
         url: '$updateReturnOrderApi$returnId/status',
         useAuthToken: true,
         body: body,
+        redactBody: true,
       );
 
       return response;
     } catch (error) {
       throw Exception('Error occurred while updating return order');
-    }
-  }
-
-  // Tells the backend the rider is at the customer's door, so it can push
-  // "your rider is here" to the customer
-  Future<Map<String, dynamic>> markArrivedAtCustomer(String returnId) async {
-    try {
-      final response = await ApiBaseHelper.post(
-        url: '$updateReturnOrderApi$returnId/arrived',
-        useAuthToken: true,
-      );
-
-      return response;
-    } catch (error) {
-      throw Exception('Error occurred while notifying the customer');
     }
   }
 

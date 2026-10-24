@@ -2451,24 +2451,10 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get haveYouReachedCustomer =>
-      'શું તમે ગ્રાહક પાસે પહોંચી ગયા? તેમને જાણ કરવામાં આવશે કે તમે રિટર્ન પિકઅપ માટે આવ્યા છો.';
+      'શું તમે રિટર્ન પિકઅપ માટે ગ્રાહક પાસે પહોંચી ગયા છો?';
 
   @override
   String get haveYouReachedSeller => 'શું તમે વિક્રેતાની દુકાને પહોંચી ગયા?';
-
-  @override
-  String get customerNotifiedRiderHere =>
-      'ગ્રાહકને જાણ કરી: રાઇડર રિટર્ન પિકઅપ માટે આવી ગયો છે';
-
-  @override
-  String get notifyingCustomer => 'ગ્રાહકને જાણ કરી રહ્યા છીએ…';
-
-  @override
-  String get customerNotifyFailed =>
-      'ગ્રાહકને જાણ કરી શક્યા નહીં. કૃપા કરીને તેમને કૉલ કરો.';
-
-  @override
-  String get notifyAgain => 'ફરી જાણ કરો';
 
   @override
   String get callCustomer => 'ગ્રાહકને કૉલ કરો';
@@ -2489,4 +2475,30 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get backToOrders => 'ઓર્ડર પર પાછા જાઓ';
+
+  @override
+  String get returnCustomerOtpTitle => 'ગ્રાહક પાસેથી પિકઅપ ચકાસો';
+
+  @override
+  String get returnCustomerOtpHelp =>
+      'આ રિટર્ન સ્વીકારતી વખતે ગ્રાહકને મોકલેલો છ અંકનો OTP પૂછો.';
+
+  @override
+  String get returnSellerOtpTitle => 'વિક્રેતાને સોંપણી ચકાસો';
+
+  @override
+  String get returnSellerOtpHelp =>
+      'પિકઅપ પછી વિક્રેતાને મોકલેલો અલગ છ અંકનો OTP પૂછો.';
+
+  @override
+  String get returnOtpLabel => 'છ અંકનો OTP';
+
+  @override
+  String get returnOtpInvalid => 'માન્ય છ અંકનો OTP દાખલ કરો.';
+
+  @override
+  String get returnVerifyOtp => 'OTP ચકાસો';
+
+  @override
+  String get returnVerifyingOtp => 'ચકાસણી થઈ રહી છે…';
 }

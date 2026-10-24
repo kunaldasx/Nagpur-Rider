@@ -21,15 +21,13 @@ import '../../../../../utils/widgets/custom_button.dart';
 import '../../../../../utils/widgets/custom_scaffold.dart';
 import '../../../../../utils/widgets/custom_text.dart';
 import '../../../../../utils/widgets/toast_message.dart';
-import '../../../bloc/return_order/pickup_orders_list_bloc/pickup_order_list_bloc.dart';
-import '../../../bloc/return_order/update_return_order_status_bloc/update_return_order_status_bloc.dart';
 import '../../../model/return_orders_list_model.dart';
-import '../../../repo/return_order_repo.dart';
 import '../navigation/navigation_widgets.dart';
 import '../navigation/turn_by_turn_navigator.dart';
 import '../navigation/voice_guidance.dart';
 import '../store_pickup_route/services/map_service.dart';
 import 'return_pickup_flow.dart';
+import 'return_handoff_dialog.dart';
 import 'return_pickup_sheet.dart';
 
 /// Map for a return pickup: customer first, then back to the seller, with
@@ -52,8 +50,6 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
   static const double _markerSize = 45;
   static const double _markerBorder = 4;
 
-  final ReturnOrderRepo _repo = ReturnOrderRepo();
-  final UpdateReturnOrderStatusBloc _statusBloc = UpdateReturnOrderStatusBloc();
   final VoiceGuidance _voice = VoiceGuidance();
 
   gm.GoogleMapController? _mapController;
@@ -67,9 +63,7 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
   bool _hasArrived = false;
   bool _arrivalPromptOpen = false;
   bool _arrivalPromptDismissed = false;
-  CustomerNotifyStatus _notifyStatus = CustomerNotifyStatus.none;
   bool _isSubmitting = false;
-  String? _pendingStatus;
 
   List<RouteOption> _routeOptions = [];
   int _selectedRouteIndex = 0;
@@ -84,7 +78,7 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
   NavProgress? _navProgress;
   double _navBearing = 0;
 
-  Pickups get _pickup => widget.pickup;
+  late Pickups _pickup;
   LatLng? get _destination => ReturnPickupFlow.destinationFor(_pickup, _leg);
   RouteOption? get _selectedRoute =>
       _routeOptions.isEmpty ? null : _routeOptions[_selectedRouteIndex];
@@ -92,6 +86,7 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
   @override
   void initState() {
     super.initState();
+    _pickup = widget.pickup;
     _leg = ReturnPickupFlow.legFor(_pickup.pickupStatus);
     _preloadMarkerIcons();
     _restoreArrival().then((_) {
@@ -106,17 +101,15 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
     if (_isNavigating) WakelockPlus.disable().catchError((_) {});
     _positionSubscription?.cancel();
     _mapController?.dispose();
-    _statusBloc.close();
     super.dispose();
   }
 
   // ---------------------------------------------------------------------------
-  // Arrival, persisted so reopening the pickup doesn't notify twice
+  // Arrival is local only; the backend has no return-arrival endpoint.
   // ---------------------------------------------------------------------------
 
   String _arrivedKey(ReturnPickupLeg leg) =>
       'return_pickup_${_pickup.id}_${leg.name}_arrived';
-  String get _notifiedKey => 'return_pickup_${_pickup.id}_customer_notified';
 
   Future<void> _restoreArrival() async {
     if (_leg == ReturnPickupLeg.completed) return;
@@ -124,15 +117,8 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
     final prefs = await SharedPreferences.getInstance();
     final arrived = prefs.getBool(_arrivedKey(leg)) ?? false;
     if (!mounted || leg != _leg || !arrived || _hasArrived) return;
-    final notified = prefs.getBool(_notifiedKey);
     setState(() {
       _hasArrived = true;
-      if (_leg == ReturnPickupLeg.toCustomer) {
-        _notifyStatus =
-            notified == true
-                ? CustomerNotifyStatus.sent
-                : CustomerNotifyStatus.failed;
-      }
     });
   }
 
@@ -148,7 +134,8 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
     for (final leg in ReturnPickupLeg.values) {
       await prefs.remove(_arrivedKey(leg));
     }
-    await prefs.remove(_notifiedKey);
+    // Remove the legacy notification marker written by older app versions.
+    await prefs.remove('return_pickup_${_pickup.id}_customer_notified');
   }
 
   Future<void> _confirmArrival() async {
@@ -211,89 +198,46 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
     if (_isNavigating) _stopNavigation(showOverview: false);
     setState(() => _hasArrived = true);
     _saveArrival(true);
-    if (toCustomer) _notifyCustomer();
   }
 
-  Future<void> _notifyCustomer() async {
-    if (_leg != ReturnPickupLeg.toCustomer ||
-        _notifyStatus == CustomerNotifyStatus.sending ||
-        _notifyStatus == CustomerNotifyStatus.sent) {
-      return;
-    }
-    setState(() => _notifyStatus = CustomerNotifyStatus.sending);
-    var sent = false;
-    try {
-      final response = await _repo.markArrivedAtCustomer(_pickup.id.toString());
-      sent = response['success'] == true;
-    } catch (_) {
-      sent = false;
-    }
-    if (!mounted || _leg != ReturnPickupLeg.toCustomer) return;
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted || _leg != ReturnPickupLeg.toCustomer) return;
-    await prefs.setBool(_notifiedKey, sent);
-    if (!mounted || _leg != ReturnPickupLeg.toCustomer) return;
-    setState(() {
-      _notifyStatus =
-          sent ? CustomerNotifyStatus.sent : CustomerNotifyStatus.failed;
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Status updates: picked_up, delivered_to_seller
-  // ---------------------------------------------------------------------------
-
-  void _updateStatus(String status) {
+  // Status changes require the handoff recipient's OTP and a server response.
+  Future<void> _updateStatus(String status) async {
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
-    _pendingStatus = status;
-    _statusBloc.add(
-      UpdateReturnOrderStatus(returnId: _pickup.id.toString(), status: status),
+    final result = await showReturnHandoffDialog(
+      context,
+      pickup: _pickup,
+      status: status,
     );
-  }
-
-  void _onStatusState(
-    BuildContext context,
-    UpdateReturnOrderStatusState state,
-  ) {
-    if (state is UpdateReturnOrderStatusLoading) {
-      setState(() => _isSubmitting = true);
-    } else if (state is UpdateReturnOrderStatusSuccess) {
-      ToastManager.show(
-        context: context,
-        message: state.message,
-        type: ToastType.success,
-      );
-      _refreshPickupList(context);
-      if (_pendingStatus == 'picked_up') {
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    if (result == null) return;
+    final nextLeg = ReturnPickupFlow.legFor(result.pickup.pickupStatus);
+    setState(() => _pickup = result.pickup);
+    if (nextLeg == ReturnPickupLeg.completed) {
+      if (_isNavigating) _stopNavigation(showOverview: false);
+      _clearSavedState();
+      setState(() {
+        _leg = nextLeg;
+        _routeOptions = [];
+      });
+    } else if (nextLeg != _leg) {
+      if (_isNavigating) _stopNavigation(showOverview: false);
+      if (nextLeg == ReturnPickupLeg.toSeller) {
         _startSellerLeg();
-      } else if (_pendingStatus == 'delivered_to_seller') {
-        _clearSavedState();
+      } else {
         setState(() {
-          _isSubmitting = false;
-          _leg = ReturnPickupLeg.completed;
+          _leg = nextLeg;
+          _hasArrived = false;
+          _arrivalPromptDismissed = false;
           _routeOptions = [];
+          _routeLabelIcons = {};
+          _selectedRouteIndex = 0;
+          _hasFittedRoute = false;
         });
+        await _restoreArrival();
+        if (mounted) _fetchRoute();
       }
-      _pendingStatus = null;
-    } else if (state is UpdateReturnOrderStatusFailed) {
-      setState(() => _isSubmitting = false);
-      _pendingStatus = null;
-      ToastManager.show(
-        context: context,
-        message: state.error,
-        type: ToastType.error,
-      );
-    }
-  }
-
-  void _refreshPickupList(BuildContext context) {
-    try {
-      context.read<PickupOrderListBloc>().add(
-        FetchPickupOrders(forceRefresh: true),
-      );
-    } catch (_) {
-      // Not provided above this page (e.g. in tests)
     }
   }
 
@@ -1111,7 +1055,6 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
       pickup: _pickup,
       leg: _leg,
       hasArrived: _hasArrived,
-      notifyStatus: _notifyStatus,
       isSubmitting: _isSubmitting,
       isDarkTheme: isDarkTheme,
       route: route,
@@ -1127,7 +1070,6 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
         _arrivalPromptDismissed = false;
         _confirmArrival();
       },
-      onRetryNotify: _notifyCustomer,
       onCollected: () => _updateStatus('picked_up'),
       onDelivered: () => _updateStatus('delivered_to_seller'),
     );
@@ -1135,141 +1077,124 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _statusBloc,
-      child: BlocListener<
-        UpdateReturnOrderStatusBloc,
-        UpdateReturnOrderStatusState
-      >(
-        listener: _onStatusState,
-        child: BlocBuilder<ThemeBloc, ThemeState>(
-          builder: (context, themeState) {
-            final isDarkTheme = themeState.currentTheme == 'dark';
-            final screenHeight = MediaQuery.of(context).size.height;
+    return BlocBuilder<ThemeBloc, ThemeState>(
+      builder: (context, themeState) {
+        final isDarkTheme = themeState.currentTheme == 'dark';
+        final screenHeight = MediaQuery.of(context).size.height;
 
-            return PopScope(
-              // Back exits navigation first, like Google Maps
-              canPop: !_isNavigating,
-              onPopInvokedWithResult: (didPop, _) {
-                if (!didPop && _isNavigating) _stopNavigation();
-              },
-              child: CustomScaffold(
-                appBar:
-                    _isNavigating
-                        ? null
-                        : CustomAppBarWithoutNavbar(
-                          title: AppLocalizations.of(context)!.returnPickup,
-                          showRefreshButton: false,
-                          showThemeToggle: false,
-                        ),
-                body: Stack(
-                  children: [
-                    Listener(
-                      // Any touch on the map while navigating stops following
-                      onPointerDown: (_) {
-                        if (_isNavigating && _isFollowingRider) {
-                          setState(() => _isFollowingRider = false);
-                        }
-                      },
-                      child: gm.GoogleMap(
-                        initialCameraPosition: gm.CameraPosition(
-                          target: GoogleMapHelpers.toGm(
-                            _rider ?? _destination ?? _nagpurCenter,
+        return PopScope(
+          // Back exits navigation first, like Google Maps
+          canPop: !_isNavigating,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && _isNavigating) _stopNavigation();
+          },
+          child: CustomScaffold(
+            appBar:
+                _isNavigating
+                    ? null
+                    : CustomAppBarWithoutNavbar(
+                      title: AppLocalizations.of(context)!.returnPickup,
+                      showRefreshButton: false,
+                      showThemeToggle: false,
+                    ),
+            body: Stack(
+              children: [
+                Listener(
+                  // Any touch on the map while navigating stops following
+                  onPointerDown: (_) {
+                    if (_isNavigating && _isFollowingRider) {
+                      setState(() => _isFollowingRider = false);
+                    }
+                  },
+                  child: gm.GoogleMap(
+                    initialCameraPosition: gm.CameraPosition(
+                      target: GoogleMapHelpers.toGm(
+                        _rider ?? _destination ?? _nagpurCenter,
+                      ),
+                      zoom: 14,
+                    ),
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      Future.delayed(const Duration(milliseconds: 500), () {
+                        if (mounted) _fitToRiderAndDestination();
+                      });
+                    },
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    mapToolbarEnabled: false,
+                    compassEnabled: !_isNavigating,
+                    trafficEnabled: _isNavigating,
+                    padding:
+                        _isNavigating
+                            ? EdgeInsets.only(
+                              top: 260.h,
+                              bottom: 88.h + screenHeight * 0.22,
+                            )
+                            : EdgeInsets.only(
+                              top: 60.h,
+                              bottom: screenHeight * 0.45,
+                            ),
+                    polylines: _buildPolylines(),
+                    markers: _buildMarkers(),
+                  ),
+                ),
+                if (_isLoadingLocation)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const CircularProgressIndicator(),
+                              SizedBox(height: 16.h),
+                              CustomText(
+                                text: AppLocalizations.of(context)!.loadingMap,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ],
                           ),
-                          zoom: 14,
                         ),
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                          Future.delayed(const Duration(milliseconds: 500), () {
-                            if (mounted) _fitToRiderAndDestination();
-                          });
-                        },
-                        myLocationButtonEnabled: false,
-                        zoomControlsEnabled: false,
-                        mapToolbarEnabled: false,
-                        compassEnabled: !_isNavigating,
-                        trafficEnabled: _isNavigating,
-                        padding:
-                            _isNavigating
-                                ? EdgeInsets.only(
-                                  top: 260.h,
-                                  bottom: 88.h + screenHeight * 0.22,
-                                )
-                                : EdgeInsets.only(
-                                  top: 60.h,
-                                  bottom: screenHeight * 0.45,
-                                ),
-                        polylines: _buildPolylines(),
-                        markers: _buildMarkers(),
                       ),
                     ),
-                    if (_isLoadingLocation)
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: Container(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const CircularProgressIndicator(),
-                                  SizedBox(height: 16.h),
-                                  CustomText(
-                                    text:
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.loadingMap,
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                  ),
+                if (_isNavigating)
+                  ..._buildNavigationOverlay(isDarkTheme)
+                else ...[
+                  if (!_hasArrived && _leg != ReturnPickupLeg.completed)
+                    Positioned(top: 16, left: 16, child: _buildDistancePill()),
+                  // Backup only: the main way is the in-app Start button
+                  if (_leg != ReturnPickupLeg.completed)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Tooltip(
+                        message: AppLocalizations.of(context)!.openInGoogleMaps,
+                        child: FloatingActionButton.small(
+                          heroTag: 'return_google_maps',
+                          onPressed: _openInGoogleMaps,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.surface,
+                          foregroundColor: AppColors.primaryColor,
+                          child: const Icon(Icons.map_outlined),
                         ),
                       ),
-                    if (_isNavigating)
-                      ..._buildNavigationOverlay(isDarkTheme)
-                    else ...[
-                      if (!_hasArrived && _leg != ReturnPickupLeg.completed)
-                        Positioned(
-                          top: 16,
-                          left: 16,
-                          child: _buildDistancePill(),
-                        ),
-                      // Backup only: the main way is the in-app Start button
-                      if (_leg != ReturnPickupLeg.completed)
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: Tooltip(
-                            message:
-                                AppLocalizations.of(context)!.openInGoogleMaps,
-                            child: FloatingActionButton.small(
-                              heroTag: 'return_google_maps',
-                              onPressed: _openInGoogleMaps,
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.surface,
-                              foregroundColor: AppColors.primaryColor,
-                              child: const Icon(Icons.map_outlined),
-                            ),
-                          ),
-                        ),
-                      Positioned(
-                        left: 12.w,
-                        right: 12.w,
-                        bottom: 16.h,
-                        child: _buildBottomCard(isDarkTheme),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+                    ),
+                  Positioned(
+                    left: 12.w,
+                    right: 12.w,
+                    bottom: 16.h,
+                    child: _buildBottomCard(isDarkTheme),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

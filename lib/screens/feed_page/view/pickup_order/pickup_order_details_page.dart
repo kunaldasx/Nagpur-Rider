@@ -5,10 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nagpur_rider/l10n/app_localizations.dart';
 import 'package:nagpur_rider/screens/feed_page/bloc/return_order/pickup_order_details_bloc/pickup_order_details_bloc.dart';
-import 'package:nagpur_rider/screens/feed_page/bloc/return_order/pickup_orders_list_bloc/pickup_order_list_bloc.dart';
-import 'package:nagpur_rider/screens/feed_page/bloc/return_order/update_return_order_status_bloc/update_return_order_status_bloc.dart';
 import 'package:nagpur_rider/screens/feed_page/model/return_orders_list_model.dart';
-import 'package:nagpur_rider/screens/feed_page/view/pickup_order/widgets/return_earnings_details_section.dart';
 import 'package:nagpur_rider/screens/feed_page/view/pickup_order/widgets/return_order_items_section.dart';
 import 'package:nagpur_rider/screens/feed_page/view/pickup_order/widgets/return_reason_section.dart';
 import 'package:nagpur_rider/screens/feed_page/view/pickup_order/widgets/return_store_details_section.dart';
@@ -19,6 +16,7 @@ import '../../../../utils/widgets/custom_appbar_without_navbar.dart';
 import '../../../../utils/widgets/loading_widget.dart';
 import '../../../../utils/widgets/toast_message.dart';
 import '../../../../router/app_routes.dart';
+import '../map/return_pickup/return_handoff_dialog.dart';
 
 class PickupOrderDetailsPage extends StatefulWidget {
   final String returnId;
@@ -31,83 +29,22 @@ class PickupOrderDetailsPage extends StatefulWidget {
 
 class _PickupOrderDetailsPageState extends State<PickupOrderDetailsPage> {
   bool _isStoreExpanded = false;
-  bool _isEarningsExpanded = false;
   bool _isProductExpanded = true;
   bool _isReturnDetailsExpanded = false;
 
-  void _showStatusUpdateSheet(Pickups pickup) {
-    final currentStatus = pickup.pickupStatus ?? 'pending';
-
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder:
-          (ctx) => BlocProvider.value(
-            value: context.read<UpdateReturnOrderStatusBloc>(),
-            child: Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.updateStatus,
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-                  if (currentStatus != 'picked_up' &&
-                      currentStatus != 'delivered_to_seller')
-                    _buildStatusOption(
-                      ctx,
-                      AppLocalizations.of(context)!.pickup,
-                      'picked_up',
-                      Icons.local_shipping,
-                      Colors.blue,
-                    ),
-                  if (currentStatus == 'picked_up')
-                    _buildStatusOption(
-                      ctx,
-                      AppLocalizations.of(context)!.deliveredToSeller,
-                      'delivered_to_seller',
-                      Icons.check_circle,
-                      Colors.green,
-                    ),
-                  SizedBox(height: 20.h),
-                ],
-              ),
-            ),
-          ),
+  Future<void> _verifyHandoff(BuildContext context, Pickups pickup) async {
+    final detailsBloc = context.read<PickupOrderDetailsBloc>();
+    final result = await showReturnHandoffDialog(
+      context,
+      pickup: pickup,
+      status:
+          pickup.pickupStatus == 'picked_up'
+              ? 'delivered_to_seller'
+              : 'picked_up',
     );
-  }
-
-  Widget _buildStatusOption(
-    BuildContext context,
-    String label,
-    String status,
-    IconData icon,
-    Color color,
-  ) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          Navigator.pop(context);
-          context.read<UpdateReturnOrderStatusBloc>().add(
-            UpdateReturnOrderStatus(returnId: widget.returnId, status: status),
-          );
-        },
-        icon: Icon(icon, color: Colors.white),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          padding: EdgeInsets.symmetric(vertical: 16.h),
-        ),
-      ),
-    );
+    if (result != null && mounted && !detailsBloc.isClosed) {
+      detailsBloc.add(FetchPickupOrderDetails(widget.returnId));
+    }
   }
 
   @override
@@ -218,16 +155,6 @@ class _PickupOrderDetailsPageState extends State<PickupOrderDetailsPage> {
                         ),
                         SizedBox(height: 12.h),
 
-                        // // Earnings
-                        // ReturnEarningsDetailsSection(
-                        // pickup: pickup,
-                        // isExpanded: _isEarningsExpanded,
-                        // onToggle:
-                        // () => setState(
-                        // () =>
-                        // _isEarningsExpanded = !_isEarningsExpanded,
-                        // ),
-                        // ),
                         SizedBox(height: 20.h),
 
                         // Opens the return map on the right leg for the status
@@ -273,51 +200,17 @@ class _PickupOrderDetailsPageState extends State<PickupOrderDetailsPage> {
 
                         // Update Status Button
                         if (!isDelivered)
-                          BlocConsumer<
-                            UpdateReturnOrderStatusBloc,
-                            UpdateReturnOrderStatusState
-                          >(
-                            listener: (context, statusState) {
-                              if (statusState
-                                  is UpdateReturnOrderStatusSuccess) {
-                                ToastManager.show(
-                                  context: context,
-                                  message: statusState.message,
-                                  type: ToastType.success,
-                                );
-                                context.read<PickupOrderListBloc>().add(
-                                  FetchPickupOrders(forceRefresh: true),
-                                );
-                                context.read<PickupOrderDetailsBloc>().add(
-                                  FetchPickupOrderDetails(widget.returnId),
-                                );
-                              } else if (statusState
-                                  is UpdateReturnOrderStatusFailed) {
-                                ToastManager.show(
-                                  context: context,
-                                  message: statusState.error,
-                                  type: ToastType.error,
-                                );
-                              }
-                            },
-                            builder: (context, statusState) {
-                              if (statusState
-                                  is UpdateReturnOrderStatusLoading) {
-                                return const CircularProgressIndicator();
-                              }
-                              return ElevatedButton.icon(
-                                onPressed: () => _showStatusUpdateSheet(pickup),
-                                icon: const Icon(Icons.update),
-                                label: Text(
-                                  AppLocalizations.of(context)!.updateStatus,
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryColor,
-                                  foregroundColor: Colors.white,
-                                  minimumSize: Size(double.infinity, 50.h),
-                                ),
-                              );
-                            },
+                          ElevatedButton.icon(
+                            onPressed: () => _verifyHandoff(context, pickup),
+                            icon: const Icon(Icons.verified_user),
+                            label: Text(
+                              AppLocalizations.of(context)!.updateStatus,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryColor,
+                              foregroundColor: Colors.white,
+                              minimumSize: Size(double.infinity, 50.h),
+                            ),
                           ),
 
                         if (isDelivered)

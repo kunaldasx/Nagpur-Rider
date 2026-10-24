@@ -14,6 +14,7 @@ import 'package:nagpur_rider/utils/widgets/toast_message.dart';
 import 'package:nagpur_rider/router/app_routes.dart';
 import '../../bloc/return_order/accept_return_order_bloc/return_order_bloc.dart';
 import '../../bloc/return_order/return_orders_list_bloc/return_order_list_bloc.dart';
+import '../../bloc/return_order/pickup_orders_list_bloc/pickup_order_list_bloc.dart';
 import '../../model/return_orders_list_model.dart';
 
 class ReturnOrderCard extends StatelessWidget {
@@ -259,10 +260,13 @@ class _ReturnOrderCardContent extends StatelessWidget {
                     context.read<ReturnOrderListBloc>().add(
                       FetchReturnOrders(forceRefresh: true),
                     );
+                    context.read<PickupOrderListBloc?>()?.add(
+                      FetchPickupOrders(forceRefresh: true),
+                    );
                     // Straight to the map, like an accepted delivery order
                     context.push(
                       AppRoutes.pickupOrderMap,
-                      extra: {'pickup': pickup},
+                      extra: {'pickup': state.pickup},
                     );
                   } else if (state is ReturnOrderError) {
                     ToastManager.show(
