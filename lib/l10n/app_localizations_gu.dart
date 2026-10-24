@@ -2474,9 +2474,6 @@ class AppLocalizationsGu extends AppLocalizations {
   String get callCustomer => 'ગ્રાહકને કૉલ કરો';
 
   @override
-  String get callSeller => 'વિક્રેતાને કૉલ કરો';
-
-  @override
   String get swipePackageCollected => 'સ્વાઇપ કરો: પેકેજ લીધું';
 
   @override
@@ -2492,7 +2489,4 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get backToOrders => 'ઓર્ડર પર પાછા જાઓ';
-
-  @override
-  String get sellerPhoneUnavailable => 'વિક્રેતાનો ફોન નંબર ઉપલબ્ધ નથી';
 }

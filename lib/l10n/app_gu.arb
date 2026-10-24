@@ -775,11 +775,9 @@
   "customerNotifyFailed": "ગ્રાહકને જાણ કરી શક્યા નહીં. કૃપા કરીને તેમને કૉલ કરો.",
   "notifyAgain": "ફરી જાણ કરો",
   "callCustomer": "ગ્રાહકને કૉલ કરો",
-  "callSeller": "વિક્રેતાને કૉલ કરો",
   "swipePackageCollected": "સ્વાઇપ કરો: પેકેજ લીધું",
   "swipeDeliveredToSeller": "સ્વાઇપ કરો: વિક્રેતાને સોંપ્યું",
   "returnCompleted": "રિટર્ન પૂર્ણ થયું",
   "returnDeliveredSummary": "રિટર્ન #{id} વિક્રેતાને સોંપાયું",
-  "backToOrders": "ઓર્ડર પર પાછા જાઓ",
-  "sellerPhoneUnavailable": "વિક્રેતાનો ફોન નંબર ઉપલબ્ધ નથી"
+  "backToOrders": "ઓર્ડર પર પાછા જાઓ"
 }

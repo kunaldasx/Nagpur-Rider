@@ -134,12 +134,12 @@ void main() {
       expect(ReturnPickupFlow.customerPhone(fromUser), '9000000001');
     });
 
-    test('seller phone is null when the store has none', () {
-      expect(ReturnPickupFlow.sellerPhone(_pickup({})), isNull);
-      final withPhone = _pickup({
-        'store': {'name': 'Sharma Kirana', 'phone': '0712-2345678'},
+    test('customer phone is null when neither number was sent', () {
+      final noPhone = _pickup({
+        'order': {'shipping_phone': ''},
+        'user': {'name': 'Rahul'},
       });
-      expect(ReturnPickupFlow.sellerPhone(withPhone), '07122345678');
+      expect(ReturnPickupFlow.customerPhone(noPhone), isNull);
     });
 
     test('names and addresses', () {

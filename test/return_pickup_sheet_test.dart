@@ -212,25 +212,36 @@ void main() {
   });
 
   testWidgets('heading to seller: items carried with a tick', (tester) async {
-    await _pumpSheet(tester, leg: ReturnPickupLeg.toSeller);
+    final taps = await _pumpSheet(tester, leg: ReturnPickupLeg.toSeller);
 
     expect(find.text('STEP 2 · RETURN TO SELLER'), findsOneWidget);
     expect(find.text('Sharma Kirana'), findsOneWidget);
     expect(find.text('Carrying (1)'), findsOneWidget);
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
     expect(find.text("I've reached seller"), findsOneWidget);
+    expect(find.byTooltip('Call customer'), findsOneWidget);
+    await tester.tap(find.byTooltip('Call customer'));
+    expect(taps.log, ['call']);
   });
 
   testWidgets('arrived at seller: hand-over swipe, no customer banner', (
     tester,
   ) async {
-    await _pumpSheet(tester, leg: ReturnPickupLeg.toSeller, hasArrived: true);
+    final taps = await _pumpSheet(
+      tester,
+      leg: ReturnPickupLeg.toSeller,
+      hasArrived: true,
+    );
 
     expect(find.text('ARRIVED AT SELLER'), findsOneWidget);
     expect(find.text('Hand over to Sharma Kirana'), findsOneWidget);
-    expect(find.text('Call seller'), findsOneWidget);
+    // The rider can only reach the customer by phone, on both steps
+    expect(find.text('Call customer'), findsOneWidget);
+    expect(find.text('Call seller'), findsNothing);
     expect(find.text('Swipe: Delivered to seller'), findsOneWidget);
     expect(find.textContaining('Customer notified'), findsNothing);
+    await tester.tap(find.text('Call customer'));
+    expect(taps.log, ['call']);
   });
 
   testWidgets('every step fits a small phone without overflow', (tester) async {

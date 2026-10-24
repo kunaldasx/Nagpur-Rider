@@ -766,11 +766,9 @@
   "customerNotifyFailed": "ग्राहक को सूचना नहीं भेज पाए। कृपया उन्हें कॉल करें।",
   "notifyAgain": "फिर से सूचित करें",
   "callCustomer": "ग्राहक को कॉल करें",
-  "callSeller": "विक्रेता को कॉल करें",
   "swipePackageCollected": "स्वाइप करें: पैकेज ले लिया",
   "swipeDeliveredToSeller": "स्वाइप करें: विक्रेता को सौंप दिया",
   "returnCompleted": "रिटर्न पूरा हुआ",
   "returnDeliveredSummary": "रिटर्न #{id} विक्रेता को सौंप दिया गया",
-  "backToOrders": "ऑर्डर पर वापस जाएँ",
-  "sellerPhoneUnavailable": "विक्रेता का फ़ोन नंबर उपलब्ध नहीं है"
+  "backToOrders": "ऑर्डर पर वापस जाएँ"
 }

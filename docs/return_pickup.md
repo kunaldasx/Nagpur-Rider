@@ -8,7 +8,7 @@ Swipe to accept ──▶ ReturnPickupMapPage (opens by itself)
                         arrive (GPS within ~60 m, nav arrival, or "I've reached customer")
                         → POST return-pickups/{id}/arrived   (customer gets "rider is here")
                         → swipe "Package collected"          (PUT status picked_up)
-                      Step 2: route to seller · Start · Steps · Call seller
+                      Step 2: route to seller · Start · Steps · Call customer
                         arrive → swipe "Delivered to seller" (PUT status delivered_to_seller)
                       Return completed → Back to orders
 ```
@@ -41,5 +41,4 @@ The backend should push a notification to the customer of that return, e.g. *"Yo
 
 - Customer location: `order.shipping_latitude` / `order.shipping_longitude`, else the first `delivery_route.route_details` stop.
 - Seller location: `store.latitude` / `store.longitude`, else the last route stop.
-- Customer phone: `order.shipping_phone`, else `user.phone`.
-- Seller phone: `store.phone`. **Not sent today.** Add it to the store object so "Call seller" works.
+- Customer phone: `order.shipping_phone`, else `user.phone`. Every Call button on both steps calls the customer.

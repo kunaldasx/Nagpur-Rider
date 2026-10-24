@@ -189,7 +189,7 @@ class ReturnPickupSheet extends StatelessWidget {
           ),
           SizedBox(width: 8.w),
           Tooltip(
-            message: _toCustomer ? l10n.callCustomer : l10n.callSeller,
+            message: l10n.callCustomer,
             child: OutlinedButton(
               onPressed: onCall,
               style: outlinedStyle.copyWith(
@@ -236,7 +236,7 @@ class ReturnPickupSheet extends StatelessWidget {
           onPressed: onCall,
           icon: const Icon(Icons.phone),
           label: Text(
-            _toCustomer ? l10n.callCustomer : l10n.callSeller,
+            l10n.callCustomer,
             style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
           ),
           style: OutlinedButton.styleFrom(

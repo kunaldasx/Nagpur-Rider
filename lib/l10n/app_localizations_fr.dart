@@ -2509,9 +2509,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callCustomer => 'Appeler le client';
 
   @override
-  String get callSeller => 'Appeler le vendeur';
-
-  @override
   String get swipePackageCollected => 'Glisser : colis récupéré';
 
   @override
@@ -2527,7 +2524,4 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get backToOrders => 'Retour aux commandes';
-
-  @override
-  String get sellerPhoneUnavailable => 'Numéro du vendeur indisponible';
 }

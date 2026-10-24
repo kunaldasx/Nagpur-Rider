@@ -766,11 +766,9 @@
   "customerNotifyFailed": "تعذر إعلام العميل. يرجى الاتصال به.",
   "notifyAgain": "إعلام مرة أخرى",
   "callCustomer": "اتصل بالعميل",
-  "callSeller": "اتصل بالبائع",
   "swipePackageCollected": "اسحب: تم استلام الطرد",
   "swipeDeliveredToSeller": "اسحب: تم التسليم للبائع",
   "returnCompleted": "اكتمل المرتجع",
   "returnDeliveredSummary": "تم تسليم المرتجع #{id} إلى البائع",
-  "backToOrders": "العودة إلى الطلبات",
-  "sellerPhoneUnavailable": "رقم هاتف البائع غير متوفر"
+  "backToOrders": "العودة إلى الطلبات"
 }

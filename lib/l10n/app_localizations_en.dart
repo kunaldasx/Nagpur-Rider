@@ -2467,9 +2467,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callCustomer => 'Call customer';
 
   @override
-  String get callSeller => 'Call seller';
-
-  @override
   String get swipePackageCollected => 'Swipe: Package collected';
 
   @override
@@ -2485,7 +2482,4 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToOrders => 'Back to orders';
-
-  @override
-  String get sellerPhoneUnavailable => 'Seller phone number not available';
 }

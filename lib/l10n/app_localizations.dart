@@ -4702,12 +4702,6 @@ abstract class AppLocalizations {
   /// **'Call customer'**
   String get callCustomer;
 
-  /// No description provided for @callSeller.
-  ///
-  /// In en, this message translates to:
-  /// **'Call seller'**
-  String get callSeller;
-
   /// No description provided for @swipePackageCollected.
   ///
   /// In en, this message translates to:
@@ -4737,12 +4731,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to orders'**
   String get backToOrders;
-
-  /// No description provided for @sellerPhoneUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Seller phone number not available'**
-  String get sellerPhoneUnavailable;
 }
 
 class _AppLocalizationsDelegate

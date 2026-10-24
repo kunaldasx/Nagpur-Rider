@@ -2488,9 +2488,6 @@ class AppLocalizationsTe extends AppLocalizations {
   String get callCustomer => 'కస్టమర్‌కు కాల్ చేయండి';
 
   @override
-  String get callSeller => 'విక్రేతకు కాల్ చేయండి';
-
-  @override
   String get swipePackageCollected => 'స్వైప్: ప్యాకేజీ తీసుకున్నాను';
 
   @override
@@ -2506,7 +2503,4 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get backToOrders => 'ఆర్డర్లకు తిరిగి వెళ్ళండి';
-
-  @override
-  String get sellerPhoneUnavailable => 'విక్రేత ఫోన్ నంబర్ అందుబాటులో లేదు';
 }

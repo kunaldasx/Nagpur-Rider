@@ -754,20 +754,13 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
           ? ReturnPickupFlow.customerAddress(_pickup)
           : ReturnPickupFlow.sellerAddress(_pickup);
 
-  Future<void> _call() async {
-    final l10n = AppLocalizations.of(context)!;
-    final toCustomer = _leg == ReturnPickupLeg.toCustomer;
-    final phone =
-        toCustomer
-            ? ReturnPickupFlow.customerPhone(_pickup)
-            : ReturnPickupFlow.sellerPhone(_pickup);
+  // Both steps call the customer: their number comes with the pickup
+  Future<void> _callCustomer() async {
+    final phone = ReturnPickupFlow.customerPhone(_pickup);
     if (phone == null) {
       ToastManager.show(
         context: context,
-        message:
-            toCustomer
-                ? l10n.customerPhoneUnavailable
-                : l10n.sellerPhoneUnavailable,
+        message: AppLocalizations.of(context)!.customerPhoneUnavailable,
         type: ToastType.error,
       );
       return;
@@ -1009,11 +1002,8 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
             SizedBox(height: 10.h),
             NavigationMapButton(
               icon: Icons.phone,
-              tooltip:
-                  _leg == ReturnPickupLeg.toCustomer
-                      ? l10n.callCustomer
-                      : l10n.callSeller,
-              onPressed: _call,
+              tooltip: l10n.callCustomer,
+              onPressed: _callCustomer,
             ),
           ],
         ),
@@ -1132,7 +1122,7 @@ class _ReturnPickupMapPageState extends State<ReturnPickupMapPage> {
       hasAlternativeRoutes: _routeOptions.length > 1,
       onStart: _onStartPressed,
       onShowSteps: () => _showSteps(isDarkTheme: isDarkTheme),
-      onCall: _call,
+      onCall: _callCustomer,
       onReached: () {
         _arrivalPromptDismissed = false;
         _confirmArrival();

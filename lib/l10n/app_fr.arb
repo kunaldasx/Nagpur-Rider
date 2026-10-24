@@ -766,11 +766,9 @@
   "customerNotifyFailed": "Impossible d'avertir le client. Veuillez l'appeler.",
   "notifyAgain": "Avertir à nouveau",
   "callCustomer": "Appeler le client",
-  "callSeller": "Appeler le vendeur",
   "swipePackageCollected": "Glisser : colis récupéré",
   "swipeDeliveredToSeller": "Glisser : remis au vendeur",
   "returnCompleted": "Retour terminé",
   "returnDeliveredSummary": "Retour #{id} remis au vendeur",
-  "backToOrders": "Retour aux commandes",
-  "sellerPhoneUnavailable": "Numéro du vendeur indisponible"
+  "backToOrders": "Retour aux commandes"
 }

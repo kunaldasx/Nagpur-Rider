@@ -581,7 +581,6 @@ class Store {
   String? country;
   String? latitude;
   String? longitude;
-  String? phone;
 
   Store({
     this.id,
@@ -593,7 +592,6 @@ class Store {
     this.country,
     this.latitude,
     this.longitude,
-    this.phone,
   });
 
   factory Store.fromJson(Map<String, dynamic> json) {
@@ -607,7 +605,6 @@ class Store {
       country: JsonParser.string(json['country']),
       latitude: JsonParser.string(json['latitude']),
       longitude: JsonParser.string(json['longitude']),
-      phone: JsonParser.string(json['phone']),
     );
   }
 
@@ -622,7 +619,6 @@ class Store {
     data['country'] = country;
     data['latitude'] = latitude;
     data['longitude'] = longitude;
-    data['phone'] = phone;
     return data;
   }
 }

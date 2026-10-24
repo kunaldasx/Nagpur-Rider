@@ -853,7 +853,6 @@
   "customerNotifyFailed": "Couldn't notify the customer. Please call them.",
   "notifyAgain": "Notify again",
   "callCustomer": "Call customer",
-  "callSeller": "Call seller",
   "swipePackageCollected": "Swipe: Package collected",
   "swipeDeliveredToSeller": "Swipe: Delivered to seller",
   "returnCompleted": "Return completed",
@@ -865,6 +864,5 @@
       }
     }
   },
-  "backToOrders": "Back to orders",
-  "sellerPhoneUnavailable": "Seller phone number not available"
+  "backToOrders": "Back to orders"
 }

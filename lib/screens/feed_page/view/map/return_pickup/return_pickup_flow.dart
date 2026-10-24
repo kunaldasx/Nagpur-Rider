@@ -83,13 +83,11 @@ class ReturnPickupFlow {
     return _join([store.address, store.city]);
   }
 
-  /// Dialable customer number, or null when none was sent.
+  /// Dialable customer number, or null when none was sent. The rider only ever
+  /// calls the customer; the seller has no number in the pickup.
   static String? customerPhone(Pickups pickup) => _dialable(
     _firstNonEmpty([pickup.order?.shippingPhone, pickup.user?.phone]),
   );
-
-  static String? sellerPhone(Pickups pickup) =>
-      _dialable(pickup.store?.phone ?? '');
 
   /// The product being returned, e.g. "Dettol Handwash · 750 ml".
   static String itemTitle(Pickups pickup) {

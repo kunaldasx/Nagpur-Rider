@@ -2453,9 +2453,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callCustomer => 'اتصل بالعميل';
 
   @override
-  String get callSeller => 'اتصل بالبائع';
-
-  @override
   String get swipePackageCollected => 'اسحب: تم استلام الطرد';
 
   @override
@@ -2471,7 +2468,4 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get backToOrders => 'العودة إلى الطلبات';
-
-  @override
-  String get sellerPhoneUnavailable => 'رقم هاتف البائع غير متوفر';
 }
