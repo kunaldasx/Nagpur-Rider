@@ -1,6 +1,8 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
+import '../../../utils/widgets/location_status_banner.dart';
+import '../../../utils/location_tracker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:nagpur_rider/screens/dashboard/bloc/notification/notification_bloc.dart';
@@ -316,7 +318,12 @@ class _FeedPageContentState extends State<FeedPageContent>
     // Dispatch to the single source-of-truth deliveryboy_status_update_bloc
     try {
       final bloc = context.read<DeliveryBoyStatusBloc>();
-      bloc.add(ToggleStatus(newValue));
+      bloc.add(
+        ToggleStatus(
+          newValue,
+          explainBackground: () => explainBackgroundLocation(context),
+        ),
+      );
     } catch (e) {
       // Handle error silently
     }
@@ -362,6 +369,27 @@ class _FeedPageContentState extends State<FeedPageContent>
                             _handleToggle();
                           },
                         ),
+                        if (isOnline) const LocationStatusBanner(),
+                        if (!isOnline &&
+                            state is DeliveryBoyStatusError &&
+                            state.locationIssue != null)
+                          LocationIssueBanner(
+                            status: state.locationIssue!,
+                            message: switch (state.locationIssue!) {
+                              LocationHealthStatus.serviceOff =>
+                                AppLocalizations.of(
+                                  context,
+                                )!.locationOnlineGpsRequired,
+                              LocationHealthStatus.permissionDenied =>
+                                AppLocalizations.of(
+                                  context,
+                                )!.locationOnlinePermissionRequired,
+                              _ =>
+                                AppLocalizations.of(
+                                  context,
+                                )!.locationOnlineWeakSignal,
+                            },
+                          ),
                         const SizedBox(height: 16),
                         HomeTabBarSection(tabController: _tabController),
                         HomeTabContentSection(

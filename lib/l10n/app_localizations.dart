@@ -4755,6 +4755,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Verifying…'**
   String get returnVerifyingOtp;
+
+  /// No description provided for @locationAllowAlways.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow all the time'**
+  String get locationAllowAlways;
+
+  /// No description provided for @locationBackgroundExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'To get orders while your phone is locked, allow location all the time.'**
+  String get locationBackgroundExplanation;
+
+  /// No description provided for @locationWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to send location'**
+  String get locationWaiting;
+
+  /// No description provided for @locationSentStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Location sent · {seconds}s ago · ±{accuracy} m'**
+  String locationSentStatus(int seconds, int accuracy);
+
+  /// No description provided for @locationGpsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS is off. You won\'t get orders.'**
+  String get locationGpsOff;
+
+  /// No description provided for @locationAccessOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Location access is off. You won\'t get orders.'**
+  String get locationAccessOff;
+
+  /// No description provided for @locationBackgroundOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Background location is off. You may miss nearby orders while the app is closed.'**
+  String get locationBackgroundOff;
+
+  /// No description provided for @locationWeakSignal.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak GPS signal. Move to an open area.'**
+  String get locationWeakSignal;
+
+  /// No description provided for @locationMock.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off fake GPS apps to get orders.'**
+  String get locationMock;
+
+  /// No description provided for @locationStale.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t send your location. Check your internet.'**
+  String get locationStale;
+
+  /// No description provided for @locationTurnOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on location'**
+  String get locationTurnOn;
+
+  /// No description provided for @locationOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get locationOpenSettings;
+
+  /// No description provided for @locationOnlineGpsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on location to go online'**
+  String get locationOnlineGpsRequired;
+
+  /// No description provided for @locationOnlinePermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access to go online'**
+  String get locationOnlinePermissionRequired;
+
+  /// No description provided for @locationOnlineWeakSignal.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak GPS signal. Move to an open area and try again.'**
+  String get locationOnlineWeakSignal;
 }
 
 class _AppLocalizationsDelegate

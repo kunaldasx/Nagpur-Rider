@@ -783,5 +783,30 @@
   "returnOtpLabel": "ఆరు అంకెల OTP",
   "returnOtpInvalid": "చెల్లుబాటు అయ్యే ఆరు అంకెల OTP నమోదు చేయండి.",
   "returnVerifyOtp": "OTP ధృవీకరించండి",
-  "returnVerifyingOtp": "ధృవీకరిస్తోంది…"
+  "returnVerifyingOtp": "ధృవీకరిస్తోంది…",
+  "locationAllowAlways": "Allow all the time",
+  "locationBackgroundExplanation": "To get orders while your phone is locked, allow location all the time.",
+  "locationWaiting": "Waiting to send location",
+  "locationSentStatus": "Location sent · {seconds}s ago · ±{accuracy} m",
+  "locationGpsOff": "GPS is off. You won't get orders.",
+  "locationAccessOff": "Location access is off. You won't get orders.",
+  "locationBackgroundOff": "Background location is off. You may miss nearby orders while the app is closed.",
+  "locationWeakSignal": "Weak GPS signal. Move to an open area.",
+  "locationMock": "Turn off fake GPS apps to get orders.",
+  "locationStale": "Can't send your location. Check your internet.",
+  "locationTurnOn": "Turn on location",
+  "locationOpenSettings": "Open settings",
+  "locationOnlineGpsRequired": "Turn on location to go online",
+  "locationOnlinePermissionRequired": "Allow location access to go online",
+  "locationOnlineWeakSignal": "Weak GPS signal. Move to an open area and try again.",
+  "@locationSentStatus": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      },
+      "accuracy": {
+        "type": "int"
+      }
+    }
+  }
 }

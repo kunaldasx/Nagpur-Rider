@@ -2480,4 +2480,56 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get returnVerifyingOtp => 'جارٍ التحقق…';
+
+  @override
+  String get locationAllowAlways => 'Allow all the time';
+
+  @override
+  String get locationBackgroundExplanation =>
+      'To get orders while your phone is locked, allow location all the time.';
+
+  @override
+  String get locationWaiting => 'Waiting to send location';
+
+  @override
+  String locationSentStatus(int seconds, int accuracy) {
+    return 'Location sent · ${seconds}s ago · ±$accuracy m';
+  }
+
+  @override
+  String get locationGpsOff => 'GPS is off. You won\'t get orders.';
+
+  @override
+  String get locationAccessOff =>
+      'Location access is off. You won\'t get orders.';
+
+  @override
+  String get locationBackgroundOff =>
+      'Background location is off. You may miss nearby orders while the app is closed.';
+
+  @override
+  String get locationWeakSignal => 'Weak GPS signal. Move to an open area.';
+
+  @override
+  String get locationMock => 'Turn off fake GPS apps to get orders.';
+
+  @override
+  String get locationStale => 'Can\'t send your location. Check your internet.';
+
+  @override
+  String get locationTurnOn => 'Turn on location';
+
+  @override
+  String get locationOpenSettings => 'Open settings';
+
+  @override
+  String get locationOnlineGpsRequired => 'Turn on location to go online';
+
+  @override
+  String get locationOnlinePermissionRequired =>
+      'Allow location access to go online';
+
+  @override
+  String get locationOnlineWeakSignal =>
+      'Weak GPS signal. Move to an open area and try again.';
 }
