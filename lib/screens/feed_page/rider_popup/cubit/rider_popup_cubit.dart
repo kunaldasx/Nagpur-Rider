@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nagpur_rider/config/global.dart';
+import 'package:nagpur_rider/utils/services/order_alert_bridge.dart';
 import 'package:nagpur_rider/screens/feed_page/rider_popup/model/rider_popup_order.dart';
 import 'package:nagpur_rider/screens/feed_page/rider_popup/repo/rider_popup_repo.dart';
 
@@ -17,7 +18,7 @@ enum BagScanOutcome { scanned, completed, alreadyScanned, wrongBag, failed }
 /// incoming-order popup:
 ///
 /// 1. [fetch] — orders with a seller bag are offered in the popup while the
-///    rider is online. The rider [accept]s or [skip]s them.
+///    rider is online. The offer stays until accepted or withdrawn.
 /// 2. Once accepted (here, from the orders list via [openAccepted], or from
 ///    order details) the popup asks for the assigned bag(s) to be scanned:
 ///    [scanBag]. The server then moves the bag's preparing items to
@@ -28,9 +29,11 @@ enum BagScanOutcome { scanned, completed, alreadyScanned, wrongBag, failed }
 /// comes back after a restart.
 class RiderPopupCubit extends Cubit<RiderPopupState> {
   final RiderPopupRepo _repo;
+  final Future<void> Function(int) _stopAlert;
 
-  RiderPopupCubit({RiderPopupRepo? repo})
+  RiderPopupCubit({RiderPopupRepo? repo, Future<void> Function(int)? stopAlert})
     : _repo = repo ?? RiderPopupRepo(),
+      _stopAlert = stopAlert ?? OrderAlertBridge.stopAlert,
       super(const RiderPopupState());
 
   static const _boxName = 'RiderPopupBox';
@@ -40,8 +43,8 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
   bool _restored = false;
   int _generation = 0;
 
-  /// Orders the rider skipped. Not offered again this session.
-  final Set<int> _skipped = {};
+  /// Suppresses late fetch/accept responses after a backend withdrawal.
+  final Set<int> _withdrawn = {};
 
   /// Orders already offered, so only a new one brings a minimized popup back.
   final Set<int> _offered = {};
@@ -93,7 +96,7 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
         orders
             .where(
               (o) =>
-                  !_skipped.contains(o.id) &&
+                  !_withdrawn.contains(o.id) &&
                   !acceptedIds.contains(o.id) &&
                   o.hasPreparingItem,
             )
@@ -136,7 +139,7 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
         if (fresh.isClosed || !fresh.hasBag || fresh.allBagsPickedUp) continue;
         kept.add(fresh);
       } catch (e) {
-        // Offline: keep it rather than let the rider skip the scan.
+        // Offline: keep it rather than lose the required scan.
         debugPrint('[RiderPopup] restore check failed for ${order.id}: $e');
         kept.add(order);
       }
@@ -164,9 +167,21 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
       await _repo.accept(order.id);
     } catch (e) {
       if (!isClosed && generation == _generation) {
+        final refused =
+            e is OfferAcceptException &&
+            e.result.outcome != AlertAcceptOutcome.retry;
+        if (refused) {
+          _withdrawn.add(order.id);
+          await _stopAlert(order.id);
+          if (isClosed || generation != _generation) return false;
+        }
         emit(
           state.copyWith(
             clearAccepting: true,
+            available:
+                refused
+                    ? state.available.where((o) => o.id != order.id).toList()
+                    : null,
             failedOrderId: order.id,
             errorMessage: e.toString(),
           ),
@@ -174,7 +189,8 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
       }
       return false;
     }
-    if (isClosed || generation != _generation) return false;
+    if (isClosed || generation != _generation || _withdrawn.contains(order.id))
+      return false;
 
     // The detail carries the bag state as it is now.
     var accepted = order;
@@ -183,7 +199,8 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
     } catch (e) {
       debugPrint('[RiderPopup] detail after accept failed: $e');
     }
-    if (isClosed || generation != _generation) return false;
+    if (isClosed || generation != _generation || _withdrawn.contains(order.id))
+      return false;
     emit(
       state.copyWith(
         clearAccepting: true,
@@ -196,16 +213,47 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
     return true;
   }
 
-  /// Takes [order] out of the popup for this session.
-  void skip(RiderPopupOrder order) {
-    if (state.isAccepted(order) || state.acceptingOrderId == order.id) return;
-    _skipped.add(order.id);
+  /// A backend cancellation removes an offer even if a fetch is in flight.
+  Future<void> offerWithdrawn(
+    int orderId,
+    String reason, {
+    String? message,
+  }) async {
+    final generation = _generation;
+    _withdrawn.add(orderId);
+    final accepted = state.accepted.where((o) => o.id == orderId).firstOrNull;
     emit(
       state.copyWith(
-        available: state.available.where((o) => o.id != order.id).toList(),
-        clearError: state.failedOrderId == order.id,
+        available: state.available.where((o) => o.id != orderId).toList(),
+        clearAccepting: state.acceptingOrderId == orderId,
+        failedOrderId: orderId,
+        errorMessage:
+            message ??
+            (reason == 'reassigned' ? 'Order reassigned' : 'Order cancelled'),
       ),
     );
+    await _stopAlert(orderId);
+    if (accepted == null || accepted.allBagsPickedUp) return;
+    try {
+      final detail = await _repo.orderDetail(orderId);
+      if (isClosed || generation != _generation) return;
+      // The previous assignment is known from acceptance/detail. The spec's
+      // detail example omits it; a withdrawal is authoritative in that case.
+      final previousRider = accepted.raw['delivery_boy_id'];
+      final nextRider = detail.raw['delivery_boy_id'];
+      if (detail.isClosed ||
+          nextRider == null ||
+          previousRider == null ||
+          '$nextRider' != '$previousRider') {
+        _removeAccepted(orderId, keepError: true);
+      }
+    } catch (e) {
+      debugPrint('[RiderPopup] withdrawal detail failed: $e');
+      if (!isClosed && generation == _generation) {
+        // A confirmed withdrawal cannot leave a scannable stale card.
+        _removeAccepted(orderId, keepError: true);
+      }
+    }
   }
 
   /// Opens the bag scan for the already accepted order [orderId], e.g. right
@@ -377,12 +425,12 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
     return !stay;
   }
 
-  void _removeAccepted(int orderId) {
+  void _removeAccepted(int orderId, {bool keepError = false}) {
     emit(
       state.copyWith(
         accepted: state.accepted.where((o) => o.id != orderId).toList(),
         stayOnScreenIds: {...state.stayOnScreenIds}..remove(orderId),
-        clearError: state.failedOrderId == orderId,
+        clearError: !keepError && state.failedOrderId == orderId,
       ),
     );
     _save();
@@ -427,7 +475,7 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
   void clear() {
     _generation++;
     _restored = false;
-    _skipped.clear();
+    _withdrawn.clear();
     _offered.clear();
     _lastSeen.clear();
     emit(const RiderPopupState());

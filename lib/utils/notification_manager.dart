@@ -148,6 +148,10 @@ class NotificationManager {
       log('Body: ${message.notification?.body}');
       log('Data: ${message.data}');
 
+      // Order alerts have their own native ringing notification.
+      if (message.data['type'] == 'new_order' ||
+          message.data['type'] == 'order_alert_cancel')
+        return;
       _showLocalNotification(message);
     });
 

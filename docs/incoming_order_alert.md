@@ -1,6 +1,6 @@
 # Incoming order alert (Android)
 
-When an order is assigned to a rider, the phone rings like an incoming call until the rider accepts it, including when the app is closed or swiped away from recents.
+The backend reserves one pending offer per eligible rider. When an order is reserved to a rider, the phone rings like an incoming call until the rider accepts it, including when the app is closed or swiped away from recents.
 
 ## How it works
 
@@ -73,18 +73,19 @@ Sending the same `order_id` again is safe: it doesn't ring twice, and it is igno
 }
 ```
 
-Send it when the order is cancelled (or, later, reassigned). Without it, a cancelled order keeps ringing until the rider taps Accept and the backend refuses.
+`reason` is `reassigned` or `cancelled`. Both stop the native ring and immediately remove the offer card in-app, showing “Order reassigned” or “Order cancelled”. Native stores cancellations until Dart attaches and subscribes. Accepted orders awaiting a scan are re-read to check assignment.
+
+There is no Skip or decline action: the reserved offer stays until accepted or withdrawn by the backend.
 
 ### Accept: `POST /orders/{id}/accept`
 
 - `success: true` only if the order is still assigned to this rider. The ringing stops after this.
+- HTTP 409 means the order is no longer assigned to this rider. HTTP 404/422 refusals also remove the card and stop ringing.
 - `success: false` with a clear `message` when it isn't ("This order was cancelled"). The ringing stops and the rider sees the message.
 - 5xx or no response: the app keeps ringing and lets the rider retry.
 - Accepting twice should return `success: true` (or a clear message), not a 500.
 
-### Gaps on the backend today
-
-There is no timeout or reassignment, so the app rings until the rider accepts. If the rider's phone is off, has no internet, or the app was force-stopped, the order stays with that rider and nobody is told. Recommended next step: if an order isn't accepted within N minutes, alert a dispatcher, and send `order_alert_cancel` before reassigning it.
+Dispatch eligibility requires explicit active duty, a location report under two minutes old, distance within 200 m of the store, verification, an FCM token and no pending offer or active delivery. There is no automatic timeout or timer-based reassignment. Dispatch is evaluated when a bag is ready, duty becomes active, or an active rider reports location.
 
 ## What Android allows
 
@@ -127,10 +128,10 @@ For each of these app states: **open**, **background**, **swiped from recents**,
 Edge cases:
 
 - [ ] Send the same `new_order` twice → rings once
-- [ ] Send `new_order` for two orders → rings once, "1 more order waiting", the oldest is offered first; accepting it offers the next
+- [ ] One reserved offer per rider: Accept only; no Skip button
 - [ ] Airplane mode, tap Accept → "Couldn't accept", still ringing; reconnect, Try again → accepted
 - [ ] Backend returns `success: false` → ringing stops, message shown
-- [ ] `order_alert_cancel` while ringing → ringing stops, screen closes
+- [ ] `order_alert_cancel` for `reassigned` / `cancelled` while ringing → ringing stops, card disappears immediately, reason shown (also after a cold start)
 - [ ] Double-tap Accept → one API call
 - [ ] Incoming phone call while ringing → pauses, resumes after
 - [ ] Log out while ringing → stops; `new_order` while logged out → nothing rings

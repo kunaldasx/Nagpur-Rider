@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:nagpur_rider/config/colors.dart';
+import 'package:nagpur_rider/utils/widgets/toast_message.dart';
 import 'package:nagpur_rider/router/app_routes.dart';
 import 'package:nagpur_rider/screens/feed_page/bloc/available_orders_bloc/available_orders_bloc.dart';
 import 'package:nagpur_rider/screens/feed_page/bloc/available_orders_bloc/available_orders_event.dart';
@@ -16,7 +17,7 @@ import 'package:nagpur_rider/screens/system_settings/bloc/system_settings_bloc.d
 
 /// Sits in `MaterialApp.builder`, above every route. While orders with a
 /// seller bag are waiting it covers the app with an order card the rider
-/// accepts or skips. An accepted order then asks for its bag to be scanned;
+/// accepts. Withdrawn offers are removed by the backend. An accepted order then asks for its bag to be scanned;
 /// the rider can tuck it away (to ride to the store), leaving a "Scan bag"
 /// button over the app until the scan is done.
 class RiderOrderOverlay extends StatefulWidget {
@@ -63,10 +64,20 @@ class _RiderOrderOverlayState extends State<RiderOrderOverlay> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<RiderPopupCubit, RiderPopupState>(
-      listenWhen: (prev, curr) => prev.isShown != curr.isShown,
+      listenWhen:
+          (prev, curr) =>
+              prev.isShown != curr.isShown ||
+              prev.errorMessage != curr.errorMessage,
       listener: (context, state) {
         _isShown = state.isShown;
         _report(_isShown || _routesCanPop);
+        if (state.errorMessage != null) {
+          ToastManager.show(
+            context: context,
+            message: state.errorMessage!,
+            type: ToastType.error,
+          );
+        }
       },
       builder: (context, state) {
         _isShown = state.isShown;
@@ -403,40 +414,18 @@ class _IncomingOrderCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                 ],
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: PopupOutlinedButton(
-                        label: 'Skip',
-                        onPressed:
-                            isAccepting
-                                ? null
-                                : () =>
-                                    context.read<RiderPopupCubit>().skip(order),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 3,
-                      child: PopupPrimaryButton(
-                        label:
-                            errorMessage != null
-                                ? 'Retry accept'
-                                : 'Accept order',
-                        color: Colors.green.shade600,
-                        isLoading: isAccepting,
-                        onPressed: () async {
-                          final ok = await context
-                              .read<RiderPopupCubit>()
-                              .accept(order);
-                          if (ok && context.mounted) {
-                            _refreshOrderLists(context);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+                PopupPrimaryButton(
+                  label: errorMessage != null ? 'Retry accept' : 'Accept order',
+                  color: Colors.green.shade600,
+                  isLoading: isAccepting,
+                  onPressed: () async {
+                    final ok = await context.read<RiderPopupCubit>().accept(
+                      order,
+                    );
+                    if (ok && context.mounted) {
+                      _refreshOrderLists(context);
+                    }
+                  },
                 ),
               ],
             ),

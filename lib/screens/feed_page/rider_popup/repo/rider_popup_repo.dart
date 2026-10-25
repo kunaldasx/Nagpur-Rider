@@ -33,13 +33,18 @@ class BagScanResult {
   const BagScanResult(this.sellerOrderId, this.bag);
 }
 
+class OfferAcceptException extends ApiException {
+  final AlertAcceptResult result;
+  OfferAcceptException(this.result) : super(result.message);
+}
+
 class RiderPopupRepo {
   static String _message(Map<String, dynamic> response, String fallback) {
     final message = response['message']?.toString().trim() ?? '';
     return message.isEmpty ? fallback : message;
   }
 
-  /// Unassigned orders in the rider's zone that already have a seller bag
+  /// Orders reserved to this rider with a pending offer, a seller bag,
   /// and at least one item in `preparing`.
   Future<List<RiderPopupOrder>> availableOrders() async {
     final response = await ApiBaseHelper.getApi(
@@ -56,19 +61,16 @@ class RiderPopupRepo {
       if (list is List)
         for (final json in list)
           if (RiderPopupOrder.tryParse(json) case final order?)
-            if (order.hasBag) order,
+            if (order.hasBag && order.hasPreparingItem) order,
     ];
   }
 
   /// Accepts [orderId]. Throws with the server's message when the order was
   /// taken by someone else or isn't in the rider's zone.
   Future<void> accept(int orderId) async {
-    final response = await ApiBaseHelper.post(
-      url: '$acceptOrderApi/$orderId/accept',
-      useAuthToken: true,
-    );
-    if (response['success'] != true) {
-      throw ApiException(_message(response, 'This order is unavailable.'));
+    final result = await acceptFromAlert(orderId);
+    if (result.outcome != AlertAcceptOutcome.accepted) {
+      throw OfferAcceptException(result);
     }
     await OrderAlertBridge.stopAlert(orderId);
   }
@@ -94,7 +96,7 @@ class RiderPopupRepo {
     }
     final message = response['message']?.toString().trim() ?? '';
     final lower = message.toLowerCase();
-    if (lower.startsWith('unauthenticated')) {
+    if (response['statusCode'] == 401 || lower.startsWith('unauthenticated')) {
       return const AlertAcceptResult(
         AlertAcceptOutcome.signedOut,
         'Your session expired. Log in again to accept this order.',
@@ -104,17 +106,17 @@ class RiderPopupRepo {
     // Only a body with `success: false` is the backend's decision. A crash
     // (Laravel: `{"message": "Server Error"}`) has no `success` flag.
     final serverError =
-        !response.containsKey('success') ||
-        (status is int && status >= 500) ||
-        lower == 'server error' ||
-        response.containsKey('exception');
-    if (serverError || message.isEmpty) {
+        !response.containsKey('success') || (status is int && status >= 500);
+    if (serverError) {
       return const AlertAcceptResult(
         AlertAcceptOutcome.retry,
         'The server had a problem. Try again.',
       );
     }
-    return AlertAcceptResult(AlertAcceptOutcome.unavailable, message);
+    return AlertAcceptResult(
+      AlertAcceptOutcome.unavailable,
+      message.isEmpty ? 'This order is unavailable.' : message,
+    );
   }
 
   Future<RiderPopupOrder> orderDetail(int orderId) async {

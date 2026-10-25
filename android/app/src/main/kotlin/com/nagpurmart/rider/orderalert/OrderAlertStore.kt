@@ -100,6 +100,25 @@ object OrderAlertStore {
         prefs(context).edit().putBoolean(KEY_LOGGED_IN, loggedIn).commit()
     }
 
+    /** A cancellation survives an absent Flutter engine until Dart drains it. */
+    @Synchronized
+    fun saveCancellation(context: Context, orderId: String, reason: String) {
+        if (!isLoggedIn(context)) return
+        val events = readObject(prefs(context), "cancellations")
+        events.put(orderId, reason)
+        prefs(context).edit().putString("cancellations", events.toString()).commit()
+    }
+
+    @Synchronized
+    fun takeCancellations(context: Context): List<Map<String, String>> {
+        val events = readObject(prefs(context), "cancellations")
+        val result = events.keys().asSequence().map {
+            mapOf("orderId" to it, "reason" to events.optString(it))
+        }.toList()
+        prefs(context).edit().remove("cancellations").commit()
+        return result
+    }
+
     /** Oldest first. */
     @Synchronized
     fun pending(context: Context): List<OrderAlert> {
@@ -144,7 +163,7 @@ object OrderAlertStore {
     /** On logout: nothing rings for the next rider who logs in here. */
     @Synchronized
     fun clearPending(context: Context) {
-        prefs(context).edit().remove(KEY_PENDING).commit()
+        prefs(context).edit().remove(KEY_PENDING).remove("cancellations").commit()
     }
 
     private fun readObject(prefs: SharedPreferences, key: String): JSONObject =

@@ -5,7 +5,7 @@ class RiderPopupState extends Equatable {
   /// scanned and not yet left the popup for delivery). Oldest first.
   final List<RiderPopupOrder> accepted;
 
-  /// Unassigned orders with a seller bag, offered to the rider. Oldest first.
+  /// Reserved offers with a seller bag, waiting for acceptance. Oldest first.
   final List<RiderPopupOrder> available;
 
   /// The rider tucked the popup away (e.g. to ride to the store). Accepted
@@ -47,7 +47,7 @@ class RiderPopupState extends Equatable {
   bool isAccepted(RiderPopupOrder order) =>
       accepted.any((o) => o.id == order.id);
 
-  /// New orders waiting for Accept or Skip — the phone rings while any exist.
+  /// Reserved orders waiting for acceptance — the phone rings while any exist.
   bool get hasUnaccepted => available.isNotEmpty;
 
   /// The full-screen popup is up.

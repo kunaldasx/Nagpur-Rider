@@ -39,7 +39,10 @@ class RiderMessagingService : FlutterFirebaseMessagingService() {
                 val orderId = data["order_id"]?.trim().orEmpty()
                 if (orderId.isNotEmpty()) {
                     Log.i(TAG, "Alert for order $orderId cancelled: ${data["reason"]}")
+                    val reason = data["reason"]?.takeIf { it == "reassigned" } ?: "cancelled"
+                    OrderAlertStore.saveCancellation(this, orderId, reason)
                     OrderAlertService.dismiss(this, orderId)
+                    OrderAlertEvents.notifyCancelled(orderId, reason)
                 }
             }
         }

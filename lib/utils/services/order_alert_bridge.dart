@@ -29,12 +29,32 @@ class OrderAlertBridge {
   /// The rider tapped Accept on an alert: call [takePendingAccept].
   static Stream<void> get acceptRequests => _acceptRequests.stream;
 
+  static final _cancellations =
+      StreamController<({int orderId, String reason})>.broadcast();
+  static Stream<({int orderId, String reason})> get cancellations =>
+      _cancellations.stream;
+
+  /// Pull only after the popup subscribes; native persists events until then.
+  static Future<void> deliverPendingCancellations() async {
+    if (!_cancellations.hasListener) return;
+    final events = await _invoke<List<dynamic>>('takePendingCancellations');
+    for (final event in events ?? const []) {
+      if (event is! Map) continue;
+      final id = int.tryParse('${event['orderId']}');
+      if (id != null)
+        _cancellations.add((orderId: id, reason: '${event['reason']}'));
+    }
+  }
+
   static void init() {
     if (!_supported) return;
     _channel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'acceptRequested':
           _acceptRequests.add(null);
+          break;
+        case 'alertCancelled':
+          await deliverPendingCancellations();
           break;
         case 'alertsChanged':
           ringing.value = _ids(call.arguments);

@@ -63,6 +63,10 @@ class OrderAlertChannel(
         channel.invokeMethod("alertsChanged", pending.map { it.orderId })
     }
 
+    override fun onAlertCancelled(orderId: String, reason: String) {
+        channel.invokeMethod("alertCancelled", mapOf("orderId" to orderId, "reason" to reason))
+    }
+
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         val context = activity.applicationContext
         when (call.method) {
@@ -82,6 +86,7 @@ class OrderAlertChannel(
                 result.success(null)
             }
             "pendingAlerts" -> result.success(OrderAlertStore.pending(context).map { it.orderId })
+            "takePendingCancellations" -> result.success(OrderAlertStore.takeCancellations(context))
             "takePendingAccept" -> {
                 result.success(pendingAcceptId)
                 pendingAcceptId = null

@@ -11,10 +11,15 @@ import java.util.concurrent.CopyOnWriteArraySet
 object OrderAlertEvents {
     fun interface Listener {
         fun onAlertsChanged(pending: List<OrderAlert>)
+        fun onAlertCancelled(orderId: String, reason: String) {}
     }
 
     private val listeners = CopyOnWriteArraySet<Listener>()
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    fun notifyCancelled(orderId: String, reason: String) {
+        mainHandler.post { listeners.forEach { it.onAlertCancelled(orderId, reason) } }
+    }
 
     fun add(listener: Listener) {
         listeners.add(listener)

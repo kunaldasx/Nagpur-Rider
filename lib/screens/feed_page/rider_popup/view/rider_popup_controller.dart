@@ -15,10 +15,10 @@ import 'package:nagpur_rider/utils/services/order_ringtone_service.dart';
 
 /// Drives the rider order popup from outside the router:
 /// - rings (phone ringtone + vibration, like the seller app) while a new
-///   order is waiting to be accepted or skipped
+///   order is waiting to be accepted or withdrawn
 /// - re-checks available orders on resume and on a timer
 /// - handles the Android back button while the popup is up: an accepted
-///   order's scan panel minimizes, a new order card needs Accept or Skip
+///   order's scan panel minimizes, a new order card waits for acceptance or withdrawal
 /// - accepts an order whose native incoming-order alert the rider tapped
 ///   Accept on ([OrderAlertBridge]), then opens it
 /// - checks what alerts need to ring when the rider goes on duty
@@ -39,6 +39,7 @@ class _RiderPopupControllerState extends State<RiderPopupController>
   static const _pollInterval = Duration(seconds: 10);
   Timer? _pollTimer;
   StreamSubscription<void>? _acceptRequests;
+  StreamSubscription<({int orderId, String reason})>? _cancellations;
 
   RiderPopupCubit get _cubit => context.read<RiderPopupCubit>();
   AlertAcceptCubit get _alertCubit => context.read<AlertAcceptCubit>();
@@ -52,6 +53,9 @@ class _RiderPopupControllerState extends State<RiderPopupController>
     _acceptRequests = OrderAlertBridge.acceptRequests.listen(
       (_) => _takeAlertAccept(),
     );
+    _cancellations = OrderAlertBridge.cancellations.listen((event) {
+      _cubit.offerWithdrawn(event.orderId, event.reason);
+    });
     OrderAlertBridge.ringing.addListener(_onNativeRingingChanged);
     // The listener below only reacts to changes, so cover orders that were
     // already queued before this widget mounted.
@@ -60,6 +64,7 @@ class _RiderPopupControllerState extends State<RiderPopupController>
       _syncRinging(_cubit.state);
       // Cold start from an alert's Accept button.
       _takeAlertAccept();
+      OrderAlertBridge.deliverPendingCancellations();
     });
   }
 
@@ -68,6 +73,7 @@ class _RiderPopupControllerState extends State<RiderPopupController>
     WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
     _acceptRequests?.cancel();
+    _cancellations?.cancel();
     OrderAlertBridge.ringing.removeListener(_onNativeRingingChanged);
     OrderRingtoneService().stop();
     super.dispose();
@@ -98,6 +104,13 @@ class _RiderPopupControllerState extends State<RiderPopupController>
       return;
     }
     final outcome = await _alertCubit.accept(orderId);
+    if (outcome == AlertAcceptOutcome.unavailable && mounted) {
+      await _cubit.offerWithdrawn(
+        orderId,
+        'cancelled',
+        message: _alertCubit.state.message,
+      );
+    }
     if (outcome == AlertAcceptOutcome.signedOut && mounted) {
       _cubit.clear();
       MyAppRoute.router.go(AppRoutes.login);
@@ -139,6 +152,7 @@ class _RiderPopupControllerState extends State<RiderPopupController>
         _cubit.fetch();
         OrderAlertBridge.refreshRinging();
         _takeAlertAccept();
+        OrderAlertBridge.deliverPendingCancellations();
         if (_cubit.state.hasUnaccepted) {
           // A call or another app may have taken audio focus meanwhile.
           OrderRingtoneService().stop().then((_) {
