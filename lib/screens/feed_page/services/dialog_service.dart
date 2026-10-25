@@ -108,51 +108,51 @@ class DialogService {
               ),
               SizedBox(height: 16.h),
               // Container(
-                // padding: EdgeInsets.all(16.w),
-                // decoration: BoxDecoration(
-                  // color: AppColors.primaryColor.withValues(alpha: 0.1),
-                  // borderRadius: BorderRadius.circular(8.r),
-                // ),
-                // child: Column(
-                  // children: [
-                    // CustomText(
-                      // text: AppLocalizations.of(context)!.yourEarningsBreakdown,
-                      // fontWeight: FontWeight.bold,
-                      // fontSize: 16.sp,
-                    // ),
-                    // SizedBox(height: 12.h),
-                    // // Breakdown details
-                    // if (order?.earnings?.breakdown != null) ...[
-                      // _buildBreakdownRow(
-                        // context,
-                        // AppLocalizations.of(context)!.baseFee,
-                        // order?.earnings?.breakdown?.baseFee,
-                      // ),
-                      // _buildBreakdownRow(
-                        // context,
-                        // AppLocalizations.of(context)!.storePickupFee,
-                        // order?.earnings?.breakdown?.perStorePickupFee,
-                      // ),
-                      // _buildBreakdownRow(
-                        // context,
-                        // AppLocalizations.of(context)!.distanceFee,
-                        // order?.earnings?.breakdown?.distanceBasedFee,
-                      // ),
-                      // _buildBreakdownRow(
-                        // context,
-                        // AppLocalizations.of(context)!.orderIncentive,
-                        // order?.earnings?.breakdown?.perOrderIncentive,
-                      // ),
-                      // Divider(),
-                      // _buildBreakdownRow(
-                        // context,
-                        // AppLocalizations.of(context)!.totalEarnings,
-                        // _calculateTotalEarnings(order?.earnings?.breakdown),
-                        // isTotal: true,
-                      // ),
-                    // ],
-                  // ],
-                // ),
+              // padding: EdgeInsets.all(16.w),
+              // decoration: BoxDecoration(
+              // color: AppColors.primaryColor.withValues(alpha: 0.1),
+              // borderRadius: BorderRadius.circular(8.r),
+              // ),
+              // child: Column(
+              // children: [
+              // CustomText(
+              // text: AppLocalizations.of(context)!.yourEarningsBreakdown,
+              // fontWeight: FontWeight.bold,
+              // fontSize: 16.sp,
+              // ),
+              // SizedBox(height: 12.h),
+              // // Breakdown details
+              // if (order?.earnings?.breakdown != null) ...[
+              // _buildBreakdownRow(
+              // context,
+              // AppLocalizations.of(context)!.baseFee,
+              // order?.earnings?.breakdown?.baseFee,
+              // ),
+              // _buildBreakdownRow(
+              // context,
+              // AppLocalizations.of(context)!.storePickupFee,
+              // order?.earnings?.breakdown?.perStorePickupFee,
+              // ),
+              // _buildBreakdownRow(
+              // context,
+              // AppLocalizations.of(context)!.distanceFee,
+              // order?.earnings?.breakdown?.distanceBasedFee,
+              // ),
+              // _buildBreakdownRow(
+              // context,
+              // AppLocalizations.of(context)!.orderIncentive,
+              // order?.earnings?.breakdown?.perOrderIncentive,
+              // ),
+              // Divider(),
+              // _buildBreakdownRow(
+              // context,
+              // AppLocalizations.of(context)!.totalEarnings,
+              // _calculateTotalEarnings(order?.earnings?.breakdown),
+              // isTotal: true,
+              // ),
+              // ],
+              // ],
+              // ),
               // ),
               SizedBox(height: 16.h),
               Row(
@@ -175,55 +175,6 @@ class DialogService {
         );
       },
     );
-  }
-
-  static Widget _buildBreakdownRow(
-    BuildContext context,
-    String label,
-    double? amount, {
-    bool isTotal = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          CustomText(
-            text: label,
-            fontSize: 14.sp,
-            color: isTotal ? AppColors.primaryColor : Colors.grey[600],
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-          ),
-          CustomText(
-            text: CurrencyFormatter.formatAmount(
-              context,
-              amount?.toString() ?? '0',
-            ),
-            fontSize: 14.sp,
-            color: isTotal ? AppColors.primaryColor : Colors.grey[600],
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-          ),
-        ],
-      ),
-    );
-  }
-
-  static double? _calculateTotalEarnings(EarningsBreakdown? breakdown) {
-    if (breakdown == null) return null;
-
-    double total = 0.0;
-    if (breakdown.baseFee != null) total += breakdown.baseFee!;
-    if (breakdown.perStorePickupFee != null) {
-      total += breakdown.perStorePickupFee!;
-    }
-    if (breakdown.distanceBasedFee != null) {
-      total += breakdown.distanceBasedFee!;
-    }
-    if (breakdown.perOrderIncentive != null) {
-      total += breakdown.perOrderIncentive!;
-    }
-
-    return total;
   }
 
   static Future<String?> showDeliveryOtpDialog(BuildContext context) async {

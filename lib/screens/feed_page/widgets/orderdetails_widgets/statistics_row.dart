@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../model/available_orders.dart';
 import 'statistics_card.dart';
-import '../../../../utils/currency_formatter.dart';
 import 'package:nagpur_rider/l10n/app_localizations.dart';
 
 class StatisticsRow extends StatelessWidget {

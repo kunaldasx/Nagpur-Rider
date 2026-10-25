@@ -44,8 +44,9 @@ T safeConvert<T>(dynamic value, {required T fallback, bool trimString = true}) {
       if (value is String) {
         final lower = value.trim().toLowerCase();
         if (lower == 'true' || lower == '1' || lower == 'yes') return true as T;
-        if (lower == 'false' || lower == '0' || lower == 'no')
+        if (lower == 'false' || lower == '0' || lower == 'no') {
           return false as T;
+        }
       }
       return fallback;
     }

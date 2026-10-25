@@ -15,8 +15,6 @@ import '../../../utils/widgets/custom_text.dart';
 import '../../feed_page/widgets/header_section/home_header_section.dart';
 import '../earnings/bloc/earnings_bloc.dart';
 import '../earnings/bloc/earnings_event.dart';
-import '../earnings/bloc/earnings_state.dart';
-import '../earnings/model/earnings_model.dart';
 
 import '../earnings/repo/earnings_repo.dart';
 import '../../../utils/currency_formatter.dart';
@@ -150,54 +148,54 @@ class _PocketsPageState extends State<PocketsPage> {
           children: [
             // // Earnings Card
             // GestureDetector(
-              // onTap: () {
-                // context.push('/earnings');
-              // },
-              // child: CustomCard(
-                // padding: EdgeInsets.all(20.w),
-                // child: Column(
-                  // crossAxisAlignment: CrossAxisAlignment.start,
-                  // children: [
-                    // Row(
-                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      // children: [
-                        // CustomText(
-                          // text: _getCurrentWeekRange(),
-                          // fontSize: 14.sp,
-                          // fontWeight: FontWeight.w600,
-                        // ),
-                        // Icon(
-                          // Icons.arrow_forward_ios,
-                          // size: 16.sp,
-                          // color: Theme.of(
-                            // context,
-                          // ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        // ),
-                      // ],
-                    // ),
-                    // SizedBox(height: 12.h),
-                    // BlocBuilder<EarningsBloc, EarningsState>(
-                      // builder: (context, state) {
-                        // if (state is EarningsStatsLoaded) {
-                          // return CustomText(
-                            // text: CurrencyFormatter.formatAmount(
-                              // context,
-                              // '${state.response.data?.totalEarnings ?? 0}',
-                            // ),
-                            // fontSize: 20.sp,
-                            // fontWeight: FontWeight.bold,
-                          // );
-                        // }
-                        // return CustomText(
-                          // text: CurrencyFormatter.formatAmount(context, '0'),
-                          // fontSize: 20.sp,
-                          // fontWeight: FontWeight.bold,
-                        // );
-                      // },
-                    // ),
-                  // ],
-                // ),
-              // ),
+            // onTap: () {
+            // context.push('/earnings');
+            // },
+            // child: CustomCard(
+            // padding: EdgeInsets.all(20.w),
+            // child: Column(
+            // crossAxisAlignment: CrossAxisAlignment.start,
+            // children: [
+            // Row(
+            // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // children: [
+            // CustomText(
+            // text: _getCurrentWeekRange(),
+            // fontSize: 14.sp,
+            // fontWeight: FontWeight.w600,
+            // ),
+            // Icon(
+            // Icons.arrow_forward_ios,
+            // size: 16.sp,
+            // color: Theme.of(
+            // context,
+            // ).colorScheme.onSurface.withValues(alpha: 0.6),
+            // ),
+            // ],
+            // ),
+            // SizedBox(height: 12.h),
+            // BlocBuilder<EarningsBloc, EarningsState>(
+            // builder: (context, state) {
+            // if (state is EarningsStatsLoaded) {
+            // return CustomText(
+            // text: CurrencyFormatter.formatAmount(
+            // context,
+            // '${state.response.data?.totalEarnings ?? 0}',
+            // ),
+            // fontSize: 20.sp,
+            // fontWeight: FontWeight.bold,
+            // );
+            // }
+            // return CustomText(
+            // text: CurrencyFormatter.formatAmount(context, '0'),
+            // fontSize: 20.sp,
+            // fontWeight: FontWeight.bold,
+            // );
+            // },
+            // ),
+            // ],
+            // ),
+            // ),
             // ),
 
             // // Earnings Statistics
@@ -205,22 +203,21 @@ class _PocketsPageState extends State<PocketsPage> {
 
             // // Earnings Statistics Section
             // BlocBuilder<EarningsBloc, EarningsState>(
-              // builder: (context, state) {
-                // if (state is EarningsStatsLoaded &&
-                    // state.response.data != null) {
-                  // return _buildEarningsStats(state.response.data!);
-                // } else if (state is EarningsError) {
-                  // return _buildEarningsErrorState(state.message);
-                // } else if (state is EarningsLoading) {
-                  // return const Center(child: CupertinoActivityIndicator());
-                // } else {
-                  // return const SizedBox.shrink();
-                // }
-              // },
+            // builder: (context, state) {
+            // if (state is EarningsStatsLoaded &&
+            // state.response.data != null) {
+            // return _buildEarningsStats(state.response.data!);
+            // } else if (state is EarningsError) {
+            // return _buildEarningsErrorState(state.message);
+            // } else if (state is EarningsLoading) {
+            // return const Center(child: CupertinoActivityIndicator());
+            // } else {
+            // return const SizedBox.shrink();
+            // }
+            // },
             // ),
 
             // SizedBox(height: 16.h),
-
             BlocBuilder<ProfileBloc, ProfileState>(
               builder: (context, state) {
                 if (state is ProfileLoaded && state.profile.user != null) {
@@ -276,51 +273,6 @@ class _PocketsPageState extends State<PocketsPage> {
           ],
         );
       },
-    );
-  }
-
-  Widget _buildEarningsStats(EarningsStatisticsModel stats) {
-    return CustomCard(
-      padding: EdgeInsets.all(16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CustomText(
-            text: AppLocalizations.of(context)!.earnings,
-
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
-          SizedBox(height: 16.h),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem(
-                  AppLocalizations.of(context)!.pending,
-                  CurrencyFormatter.formatAmount(
-                    context,
-                    '${stats.pendingEarnings ?? 0}',
-                  ),
-                  Icons.pending,
-                  Colors.orange,
-                ),
-              ),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: _buildStatItem(
-                  AppLocalizations.of(context)!.paid,
-                  CurrencyFormatter.formatAmount(
-                    context,
-                    '${stats.paidEarnings ?? 0}',
-                  ),
-                  Icons.check_circle,
-                  Colors.green,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -458,38 +410,5 @@ class _PocketsPageState extends State<PocketsPage> {
     });
 
     return _buildEarningsSection();
-  }
-
-  String _getCurrentWeekRange() {
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 6));
-
-    final startMonth = _getMonthName(startOfWeek.month);
-    final endMonth = _getMonthName(endOfWeek.month);
-
-    if (startMonth == endMonth) {
-      return '${AppLocalizations.of(context)!.earnings}: ${startOfWeek.day} $startMonth - ${endOfWeek.day} $endMonth';
-    } else {
-      return '${AppLocalizations.of(context)!.earnings}: ${startOfWeek.day} $startMonth - ${endOfWeek.day} $endMonth';
-    }
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return months[month - 1];
   }
 }

@@ -17,7 +17,6 @@ import '../../rider_popup/cubit/rider_popup_cubit.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../router/app_routes.dart';
 import '../../../../utils/widgets/toast_message.dart';
-import '../../../../utils/currency_formatter.dart';
 import 'package:nagpur_rider/l10n/app_localizations.dart';
 
 class AvailableOrderCard extends StatelessWidget {

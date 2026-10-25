@@ -13,7 +13,6 @@ import 'package:nagpur_rider/screens/feed_page/bloc/my_orders_bloc/my_orders_blo
 import 'package:nagpur_rider/screens/feed_page/bloc/my_orders_bloc/my_orders_event.dart';
 import 'package:nagpur_rider/screens/feed_page/bloc/my_orders_bloc/my_orders_state.dart';
 import 'package:nagpur_rider/screens/feed_page/model/available_orders.dart';
-import 'package:nagpur_rider/utils/currency_formatter.dart';
 import 'package:nagpur_rider/utils/widgets/empty_state_widget.dart';
 import 'package:nagpur_rider/utils/widgets/loading_widget.dart';
 import 'package:nagpur_rider/config/colors.dart';

@@ -9,7 +9,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:location/location.dart' as loc;
 import '../../../../utils/location_handler.dart';
 import '../../../../config/colors.dart';
-import '../../../../utils/currency_formatter.dart';
 import '../../../../utils/widgets/custom_text.dart';
 import '../../../../utils/widgets/custom_appbar_without_navbar.dart';
 import '../../../../utils/widgets/custom_scaffold.dart';
@@ -43,7 +42,6 @@ import 'widgets/index.dart' as new_widgets;
 import '../../services/order_service.dart';
 import '../../services/dialog_service.dart';
 import '../../../../utils/services/phone_service.dart';
-import '../../../../utils/services/ui_helper_service.dart';
 import '../../services/item_card_service.dart';
 import '../../rider_popup/cubit/rider_popup_cubit.dart';
 
@@ -113,7 +111,6 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
   bool _isDeliveryExpanded = false;
   bool _isStoreDetailsExpanded = false;
   bool _isPaymentExpanded = false;
-  bool _isEarningsExpanded = false;
   bool _isPricingExpanded = false;
   final Set<String> _processingItemIds = {};
   bool _isCollectingAll = false;

@@ -36,7 +36,7 @@ class _MapDeliveryPageState extends State<MapDeliveryPage>
   gm.GoogleMapController? _mapController;
   LocationData? _currentLocation;
   bool _isLoadingLocation = true;
-  bool _hasReachedDestination = false;
+  final bool _hasReachedDestination = false;
   // Stage indicator: 0 = heading to stores, 1 = arrived at stores
   int get _currentStage => _hasReachedDestination ? 1 : 0;
   double _distanceToStores = 0.0;
