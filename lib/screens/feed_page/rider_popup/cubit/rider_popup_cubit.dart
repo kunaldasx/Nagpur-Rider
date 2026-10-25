@@ -189,8 +189,11 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
       }
       return false;
     }
-    if (isClosed || generation != _generation || _withdrawn.contains(order.id))
+    if (isClosed ||
+        generation != _generation ||
+        _withdrawn.contains(order.id)) {
       return false;
+    }
 
     // The detail carries the bag state as it is now.
     var accepted = order;
@@ -199,8 +202,11 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
     } catch (e) {
       debugPrint('[RiderPopup] detail after accept failed: $e');
     }
-    if (isClosed || generation != _generation || _withdrawn.contains(order.id))
+    if (isClosed ||
+        generation != _generation ||
+        _withdrawn.contains(order.id)) {
       return false;
+    }
     emit(
       state.copyWith(
         clearAccepting: true,
@@ -459,13 +465,26 @@ class RiderPopupCubit extends Cubit<RiderPopupState> {
     }
   }
 
-  Future<void> _save() async {
+  Future<void>? _pendingSave;
+
+  @override
+  Future<void> close() {
+    final closing = super.close();
+    final saving = _pendingSave;
+    return saving == null ? closing : saving.then((_) => closing);
+  }
+
+  Future<void> _save() {
+    final orders = [for (final o in state.accepted) o.raw];
+    return _pendingSave = (_pendingSave ?? Future<void>.value()).then(
+      (_) => _persist(orders),
+    );
+  }
+
+  Future<void> _persist(List<Map<String, dynamic>> orders) async {
     try {
       final box = await Hive.openBox(_boxName);
-      await box.put(
-        _acceptedKey,
-        jsonEncode([for (final o in state.accepted) o.raw]),
-      );
+      await box.put(_acceptedKey, jsonEncode(orders));
     } catch (e) {
       debugPrint('[RiderPopup] save failed: $e');
     }

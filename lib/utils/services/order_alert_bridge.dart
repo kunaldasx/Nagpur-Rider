@@ -41,8 +41,9 @@ class OrderAlertBridge {
     for (final event in events ?? const []) {
       if (event is! Map) continue;
       final id = int.tryParse('${event['orderId']}');
-      if (id != null)
+      if (id != null) {
         _cancellations.add((orderId: id, reason: '${event['reason']}'));
+      }
     }
   }
 

@@ -150,8 +150,9 @@ class NotificationManager {
 
       // Order alerts have their own native ringing notification.
       if (message.data['type'] == 'new_order' ||
-          message.data['type'] == 'order_alert_cancel')
+          message.data['type'] == 'order_alert_cancel') {
         return;
+      }
       _showLocalNotification(message);
     });
 
