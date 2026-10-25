@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -97,9 +98,7 @@ class ApiBaseHelper {
     if (!hasToken) return false;
     final statusCode = e.response?.statusCode;
     final data = e.response?.data;
-    final isRiderEndpoint = e.requestOptions.uri.toString().startsWith(
-      baseUrl,
-    );
+    final isRiderEndpoint = e.requestOptions.uri.toString().startsWith(baseUrl);
     return statusCode == 401 ||
         (statusCode == 403 && isRiderEndpoint) ||
         (data is Map && data['message'] == 'Unauthenticated');
@@ -150,6 +149,7 @@ class ApiBaseHelper {
   }
 
   static Future<Map<String, dynamic>> post({
+    Duration? requestTimeout,
     Map<String, dynamic>? body,
     required String url,
     bool? useAuthToken,
@@ -157,6 +157,13 @@ class ApiBaseHelper {
     Function(int, int)? onSendProgress,
     Function(int, int)? onReceiveProgress,
   }) async {
+    final cancellation = CancelToken();
+    final timeoutTimer =
+        requestTimeout == null
+            ? null
+            : Timer(requestTimeout, () {
+              cancellation.cancel('Request timed out');
+            });
     try {
       body ??= {};
 
@@ -165,6 +172,7 @@ class ApiBaseHelper {
       final response = await _dio.post(
         url,
         data: body,
+        cancelToken: cancellation,
         options: Options(headers: authHeaders, followRedirects: false),
       );
 
@@ -181,7 +189,10 @@ class ApiBaseHelper {
       return responseData;
     } on DioException catch (e) {
       if (e.response?.data != null) {
-        return e.response?.data as Map<String, dynamic>;
+        return {
+          ...e.response!.data as Map<String, dynamic>,
+          'statusCode': e.response?.statusCode,
+        };
       }
 
       throw ApiException(
@@ -194,6 +205,8 @@ class ApiBaseHelper {
       throw ApiException(e.errorMessage);
     } catch (e) {
       throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageKey);
+    } finally {
+      timeoutTimer?.cancel();
     }
   }
 
@@ -411,13 +424,13 @@ class ApiBaseHelper {
         };
       }
 
-
-
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       // log('Unauthenticated-----  ${e.response?.statusCode}');
       log('Unauthenticated-----  ${e.response?.data}');
-      log('Unauthenticated-----  ${e.response?.statusCode == 401 || e.response?.data['message'] == 'Unauthenticated'}');
+      log(
+        'Unauthenticated-----  ${e.response?.statusCode == 401 || e.response?.data['message'] == 'Unauthenticated'}',
+      );
       if (e.response?.statusCode == 403) {
         final responseData = e.response?.data as Map<String, dynamic>? ?? {};
         return {
@@ -430,7 +443,10 @@ class ApiBaseHelper {
       }
 
       if (e.response?.data != null) {
-        return e.response?.data as Map<String, dynamic>;
+        return {
+          ...e.response!.data as Map<String, dynamic>,
+          'statusCode': e.response?.statusCode,
+        };
       }
 
       throw ApiException(

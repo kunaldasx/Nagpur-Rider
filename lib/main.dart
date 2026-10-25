@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nagpur_rider/router/app_routes.dart';
@@ -45,7 +44,6 @@ import 'config/global.dart';
 import 'config/theme.dart';
 import 'config/theme_bloc.dart';
 import 'config/localization_service.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
@@ -104,8 +102,8 @@ void main() async {
   final localizationService = LocalizationService();
   await localizationService.initialize();
 
-  await initializeService();
-  await _restartServicesIfNeeded();
+  // Re-entering main must not leave an earlier duty stream behind.
+  await LocationTracker().stopTracking();
 
   runApp(
     ScreenUtilInit(
@@ -115,61 +113,6 @@ void main() async {
       builder: (context, child) => const MyApp(),
     ),
   );
-}
-
-Future<void> initializeService() async {
-  await _ensureLocationTrackingNotificationChannel();
-
-  final service = FlutterBackgroundService();
-
-  await service.configure(
-    androidConfiguration: AndroidConfiguration(
-      onStart: onStart,
-      autoStart: false,
-      isForegroundMode: true,
-      notificationChannelId: 'location_tracker_channel',
-      initialNotificationTitle: 'Location Tracking',
-      initialNotificationContent: 'Tracking your location for deliveries',
-      foregroundServiceNotificationId: 888,
-    ),
-    iosConfiguration: IosConfiguration(
-      autoStart: false,
-      onForeground: onStart,
-      onBackground: onIosBackground,
-    ),
-  );
-}
-
-Future<void> _ensureLocationTrackingNotificationChannel() async {
-  const channel = AndroidNotificationChannel(
-    'location_tracker_channel',
-    'Location Tracker Service',
-    description: 'Foreground service for delivery location updates',
-    importance: Importance.low,
-  );
-
-  final plugin = FlutterLocalNotificationsPlugin();
-  await plugin
-      .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-      >()
-      ?.createNotificationChannel(channel);
-}
-
-Future<void> _restartServicesIfNeeded() async {
-  try {
-    final wasOnline = await Global.getDeliveryBoyStatus();
-    if (wasOnline == true) {
-      final service = FlutterBackgroundService();
-      if (!await service.isRunning()) {
-        await service.startService();
-      }
-      service.invoke('setUpdateInterval', {'seconds': 5});
-      service.invoke('triggerNow');
-    }
-  } catch (e) {
-    log('Error checking delivery status: $e');
-  }
 }
 
 class MyApp extends StatelessWidget {

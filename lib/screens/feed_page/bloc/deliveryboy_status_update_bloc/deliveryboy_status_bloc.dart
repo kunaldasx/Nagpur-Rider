@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:geolocator/geolocator.dart';
 import '../../../../config/api_base_helper.dart';
 import '../../../../config/api_routes.dart';
 import '../../../../config/global.dart';
@@ -11,21 +10,23 @@ import 'deliveryboy_status_state.dart';
 
 class DeliveryBoyStatusBloc
     extends Bloc<DeliveryBoyStatusEvent, DeliveryBoyStatusState> {
-  final LocationTracker _locationTracker = LocationTracker();
-  final DeliveryBoyStatusRepo _deliveryBoyStatusRepo = DeliveryBoyStatusRepo();
+  final LocationTracker _locationTracker;
+  final DeliveryBoyStatusRepo _deliveryBoyStatusRepo;
+  final Future<void> Function(bool) _saveStatus;
   bool _isProcessing = false;
   bool _isCheckingApi = false;
 
-  DeliveryBoyStatusBloc() : super(DeliveryBoyStatusInitial()) {
+  DeliveryBoyStatusBloc({
+    LocationTracker? locationTracker,
+    DeliveryBoyStatusRepo? repo,
+    Future<void> Function(bool)? saveStatus,
+  }) : _locationTracker = locationTracker ?? LocationTracker(),
+       _deliveryBoyStatusRepo = repo ?? DeliveryBoyStatusRepo(),
+       _saveStatus = saveStatus ?? Global.setDeliveryBoyStatus,
+       super(DeliveryBoyStatusInitial()) {
     on<SyncInitialStatus>(_onSyncInitialStatus);
     on<CheckApiStatus>(_onCheckApiStatus);
     on<ToggleStatus>(_onToggleStatus);
-  }
-
-  @override
-  Future<void> close() {
-    _locationTracker.stopTracking();
-    return super.close();
   }
 
   Future<void> _onSyncInitialStatus(
@@ -33,11 +34,12 @@ class DeliveryBoyStatusBloc
     Emitter<DeliveryBoyStatusState> emit,
   ) async {
     try {
+      if (_isProcessing) return;
       // Emit the local status immediately
       emit(DeliveryBoyStatusLoaded(isOnline: event.isOnline));
 
       // Start location services if online
-      if (event.isOnline) {
+      if (event.isOnline && (Global.userToken ?? '').trim().isNotEmpty) {
         _locationTracker.startTracking();
       }
     } catch (e) {
@@ -61,6 +63,7 @@ class DeliveryBoyStatusBloc
     _isCheckingApi = true;
 
     try {
+      if (_isProcessing) return;
       await Global.refreshCachedToken();
 
       Map<String, dynamic> response;
@@ -96,6 +99,7 @@ class DeliveryBoyStatusBloc
       }
 
       if (response['success'] == true) {
+        if (_isProcessing) return;
         bool isOnline = false;
         bool isVerified = true;
 
@@ -198,218 +202,57 @@ class DeliveryBoyStatusBloc
 
     try {
       if (event.isOnline) {
-        // Going online - simplified process
-
-        double? latitude;
-        double? longitude;
-
-        // Try to get location with multiple fallbacks
-        try {
-          // 1. Check LocationTracker first (if it's already running somehow)
-          if (_locationTracker.currentLocation != null) {
-            latitude = _locationTracker.currentLocation!.latitude;
-            longitude = _locationTracker.currentLocation!.longitude;
-          }
-
-          // 2. Request fresh location from Geolocator
-          if (latitude == null || longitude == null) {
-            // Check if service is enabled
-            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-            if (!serviceEnabled) {
-              // Service is not enabled, we can't get fresh location here
-            } else {
-              // Check location permissions
-              LocationPermission permissionStatus =
-                  await Geolocator.checkPermission();
-              if (permissionStatus == LocationPermission.denied) {
-                permissionStatus = await Geolocator.requestPermission();
-              }
-
-              if (permissionStatus == LocationPermission.whileInUse ||
-                  permissionStatus == LocationPermission.always) {
-                // Request a FRESH position, not a last known one
-                Position position = await Geolocator.getCurrentPosition(
-                  locationSettings: const LocationSettings(
-                    accuracy: LocationAccuracy.high,
-                    timeLimit: Duration(seconds: 8),
-                  ),
-                );
-                latitude = position.latitude;
-                longitude = position.longitude;
-              }
-            }
-          }
-        } catch (e) {
-          // Ignored - move to next fallback
-        }
-
-        // 3. Fallback: Try to get coordinates from profile/delivery zone center
-        if (latitude == null || longitude == null) {
-          try {
-            await Global.refreshCachedToken();
-            final profileResponse = await ApiBaseHelper.getApi(
-              url: deliveryBoyProfileApi,
-              useAuthToken: true,
-              params: {},
-            ).timeout(const Duration(seconds: 5));
-
-            if (profileResponse['success'] == true &&
-                profileResponse['data'] != null) {
-              final data = profileResponse['data'];
-              final deliveryBoy = data['delivery_boy'];
-
-              if (deliveryBoy != null) {
-                // Try direct boy coords first
-                latitude = double.tryParse(
-                  deliveryBoy['latitude']?.toString() ?? '',
-                );
-                longitude = double.tryParse(
-                  deliveryBoy['longitude']?.toString() ?? '',
-                );
-
-                // Fallback to zone center if boy doesn't have fixed coords
-                if (latitude == null && deliveryBoy['delivery_zone'] != null) {
-                  final zone = deliveryBoy['delivery_zone'];
-                  latitude = double.tryParse(
-                    zone['center_latitude']?.toString() ?? '',
-                  );
-                  longitude = double.tryParse(
-                    zone['center_longitude']?.toString() ?? '',
-                  );
-                }
-              }
-            }
-          } catch (profileError) {
-            // Last resort: If we still have no coordinates but are going online,
-            // we'll try to let the backend handle it or fail there.
-          }
-        }
-
-        // Final validation before sending to API
-        if (latitude == null || longitude == null) {
-          // If we still don't have coordinates, we can't accurately report location,
-          // but we try one last time with a shorter timeout or just fail.
-          emit(
-            DeliveryBoyStatusError(
-              'Unable to get your current location. Please check your GPS and try again.',
-              isOnline: false,
-              isVerified: state.isVerified,
-            ),
+        await _locationTracker.checkDutyAccess(
+          explainBackground: event.explainBackground,
+        );
+        final position = await _locationTracker.prepareForDuty();
+        if (position == null) {
+          throw const DutyLocationException(
+            LocationHealthStatus.weakSignal,
+            'Weak GPS signal. Move to an open area and try again.',
           );
-          _isProcessing = false;
-          return;
         }
-
-        await Global.refreshCachedToken();
-
-        if (Global.userToken == null || Global.userToken!.isEmpty) {
-          emit(
-            DeliveryBoyStatusError(
-              'Authentication token is missing. Please login again.',
-              isOnline: state.isOnline,
-            ),
-          );
-          _isProcessing = false;
-          return;
-        }
-
         final response = await _deliveryBoyStatusRepo.updateDeliveryBoyStatus(
           isOnline: true,
-          latitude: latitude,
-          longitude: longitude,
+          latitude: position.latitude,
+          longitude: position.longitude,
         );
-
-        if (response['success'] == true) {
-          // Start location services in background (don't wait for it)
-          _startLocationServicesInBackground();
-
-          emit(
-            DeliveryBoyStatusLoaded(
-              isOnline: true,
-              message: response['message'] ?? 'Status updated successfully',
-            ),
+        if (response['success'] != true) {
+          throw ApiException(
+            response['message']?.toString() ?? 'Failed to update status',
           );
-          await Global.setDeliveryBoyStatus(true);
-        } else {
-          emit(
-            DeliveryBoyStatusError(
-              response['message'] ?? 'Failed to update status',
-              isOnline: state.isOnline, // Keep current status on failure
-              isVerified: state.isVerified,
-            ),
-          );
+        }
+        // Reuse the gate's stream only after the server made duty active.
+        if (!await _locationTracker.startTracking()) {
+          throw ApiException('Your session expired. Log in again.');
         }
       } else {
-        await Global.refreshCachedToken();
-
-        if (Global.userToken == null || Global.userToken!.isEmpty) {
-          emit(
-            DeliveryBoyStatusError(
-              'Authentication token is missing. Please login again.',
-              isOnline: state.isOnline,
-            ),
-          );
-          _isProcessing = false;
-          return;
-        }
-
         final response = await _deliveryBoyStatusRepo.updateDeliveryBoyStatus(
           isOnline: false,
         );
-
-        if (response['success'] == true) {
-          // Stop location services in background (don't wait for it)
-          _stopLocationServicesInBackground();
-
-          emit(
-            DeliveryBoyStatusLoaded(
-              isOnline: false,
-              message: response['message'] ?? 'Status updated successfully',
-            ),
-          );
-          await Global.setDeliveryBoyStatus(false);
-        } else {
-          emit(
-            DeliveryBoyStatusError(
-              response['message'] ?? 'Failed to update status',
-              isOnline: state.isOnline, // Keep current status on failure
-              isVerified: state.isVerified,
-            ),
+        if (response['success'] != true) {
+          throw ApiException(
+            response['message']?.toString() ?? 'Failed to update status',
           );
         }
+        await _locationTracker.stopTracking();
       }
+      await _saveStatus(event.isOnline);
+      emit(DeliveryBoyStatusLoaded(isOnline: event.isOnline));
     } catch (e) {
+      if (event.isOnline && !currentIsOnline) {
+        await _locationTracker.stopTracking();
+      }
       emit(
         DeliveryBoyStatusError(
-          'Failed to update status: ${e.toString()}',
-          isOnline: state.isOnline,
-          isVerified: state.isVerified,
+          e.toString(),
+          isOnline: currentIsOnline,
+          isVerified: currentIsVerified,
+          locationIssue: e is DutyLocationException ? e.status : null,
         ),
       );
     } finally {
       _isProcessing = false;
     }
-  }
-
-  // Helper method to start location services in background
-  void _startLocationServicesInBackground() {
-    Future.microtask(() async {
-      try {
-        _locationTracker.startTracking();
-      } catch (e) {
-        //
-      }
-    });
-  }
-
-  // Helper method to stop location services in background
-  void _stopLocationServicesInBackground() {
-    Future.microtask(() async {
-      try {
-        _locationTracker.stopTracking();
-      } catch (e) {
-        //
-      }
-    });
   }
 }

@@ -1,6 +1,7 @@
 // delivery_boy_status_state.dart
 
 import 'package:equatable/equatable.dart';
+import '../../../../utils/location_tracker.dart';
 
 abstract class DeliveryBoyStatusState extends Equatable {
   final bool isOnline;
@@ -49,13 +50,21 @@ class DeliveryBoyStatusLoaded extends DeliveryBoyStatusState {
 
 class DeliveryBoyStatusError extends DeliveryBoyStatusState {
   final String errorMessage;
+  final LocationHealthStatus? locationIssue;
 
   const DeliveryBoyStatusError(
     this.errorMessage, {
     required super.isOnline,
     super.isVerified,
+    this.locationIssue,
   }) : super(message: errorMessage);
 
   @override
-  List<Object?> get props => [isOnline, isVerified, errorMessage, message];
+  List<Object?> get props => [
+    isOnline,
+    isVerified,
+    errorMessage,
+    message,
+    locationIssue,
+  ];
 }

@@ -75,13 +75,6 @@ package="com.nagpurmart.rider">
             android:exported="false"
             android:stopWithTask="false" />
 
-        <service
-            android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:exported="false"
-            tools:replace="android:exported,android:stopWithTask"
-            android:foregroundServiceType="location"
-            android:stopWithTask="true" />
-
         <!-- Only one service may receive MESSAGING_EVENT: RiderMessagingService
              replaces FlutterFire's (it extends it, keeping token refresh). -->
         <service

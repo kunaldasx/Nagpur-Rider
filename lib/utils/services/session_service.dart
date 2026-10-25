@@ -8,7 +8,7 @@ class SessionService {
 
   /// Stops tracking and clears every locally stored rider credential.
   static Future<void> endLocalSession() async {
-    LocationTracker().stopTracking();
+    await LocationTracker().stopTracking();
     await Global.setDeliveryBoyStatus(false);
     await Global.clearSession();
   }

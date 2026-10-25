@@ -12,7 +12,8 @@ abstract class DeliveryBoyStatusEvent extends Equatable {
 class ToggleStatus extends DeliveryBoyStatusEvent {
   final bool isOnline;
 
-  const ToggleStatus(this.isOnline);
+  final Future<bool> Function()? explainBackground;
+  const ToggleStatus(this.isOnline, {this.explainBackground});
 
   @override
   List<Object?> get props => [isOnline];

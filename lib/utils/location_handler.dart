@@ -1,79 +1,17 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:nagpur_rider/l10n/app_localizations.dart';
 import 'package:nagpur_rider/config/global.dart';
+import 'location_tracker.dart';
 
 class LocationHandler {
   static bool _isDialogShowing = false;
-  static StreamSubscription<ServiceStatus>? _serviceStatusSubscription;
 
-  /// Initialize monitoring of location service status
-  static void initialize() {
-    _serviceStatusSubscription?.cancel();
-    _serviceStatusSubscription = Geolocator.getServiceStatusStream().listen((
-      ServiceStatus status,
-    ) {
-      if (status == ServiceStatus.disabled) {
-        checkLocationAvailability();
-      } else if (status == ServiceStatus.enabled) {
-        // If GPS is enabled and our dialog is showing, we close it
-        final context = navigatorKey.currentContext;
-        if (_isDialogShowing && context != null && context.mounted) {
-          try {
-            Navigator.of(context, rootNavigator: true).pop();
-          } catch (e) {
-            debugPrint('Error popping location dialog: $e');
-          }
-          _isDialogShowing = false;
-        }
-      }
-    });
-
-    // Initial check
-    checkLocationAvailability();
-  }
-
-  /// Stop monitoring
-  static void dispose() {
-    _serviceStatusSubscription?.cancel();
-    _serviceStatusSubscription = null;
-  }
-
-  /// Check location service and permission, show dialog if needed
-  static Future<void> checkLocationAvailability() async {
-    final context = navigatorKey.currentContext;
-    if (_isDialogShowing || context == null || !context.mounted) return;
-
-    // Only show location prompt if user is logged in
-    final token = Global.userToken;
-    if (token == null || token.isEmpty) return;
-
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        showLocationServiceDialog();
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          showPermissionDeniedDialog(isPermanent: false);
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        showPermissionDeniedDialog(isPermanent: true);
-        return;
-      }
-    } catch (e) {
-      debugPrint('Error checking location availability: $e');
-    }
-  }
+  /// The tracker owns service monitoring. Lifecycle checks never prompt.
+  static void initialize() {}
+  static void dispose() {}
+  static Future<void> checkLocationAvailability() =>
+      LocationTracker().onResume();
 
   static void showLocationServiceDialog() {
     final context = navigatorKey.currentContext;
