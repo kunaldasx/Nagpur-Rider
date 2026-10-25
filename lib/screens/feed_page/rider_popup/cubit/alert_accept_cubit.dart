@@ -65,6 +65,7 @@ class AlertAcceptState extends Equatable {
 /// this rider's. Without a connection it keeps ringing and the rider retries.
 class AlertAcceptCubit extends Cubit<AlertAcceptState> {
   final RiderPopupRepo _repo;
+  int _generation = 0;
 
   AlertAcceptCubit({RiderPopupRepo? repo})
     : _repo = repo ?? RiderPopupRepo(),
@@ -81,11 +82,15 @@ class AlertAcceptCubit extends Cubit<AlertAcceptState> {
         message: '',
       ),
     );
+    final generation = _generation;
     final result = await _repo.acceptFromAlert(orderId);
+    if (generation != _generation) return AlertAcceptOutcome.signedOut;
     if (isClosed) return result.outcome;
     switch (result.outcome) {
       case AlertAcceptOutcome.accepted:
         await OrderAlertBridge.stopAlert(orderId);
+        if (isClosed || generation != _generation)
+          return AlertAcceptOutcome.signedOut;
         emit(
           AlertAcceptState(
             acceptedVersion: state.acceptedVersion + 1,
@@ -95,6 +100,8 @@ class AlertAcceptCubit extends Cubit<AlertAcceptState> {
         break;
       case AlertAcceptOutcome.unavailable:
         await OrderAlertBridge.stopAlert(orderId);
+        if (isClosed || generation != _generation)
+          return AlertAcceptOutcome.signedOut;
         emit(
           state.copyWith(
             phase: AlertAcceptPhase.unavailable,
@@ -125,6 +132,12 @@ class AlertAcceptCubit extends Cubit<AlertAcceptState> {
         break;
     }
     return result.outcome;
+  }
+
+  /// A logged-out rider must not see an old alert or its late accept result.
+  void clear() {
+    _generation++;
+    emit(const AlertAcceptState());
   }
 
   Future<void> retry() async {

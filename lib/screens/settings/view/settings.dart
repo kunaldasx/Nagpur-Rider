@@ -7,6 +7,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nagpur_rider/config/global.dart';
 import 'package:nagpur_rider/screens/auth/repo/auth_repo.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/cubit/rider_popup_cubit.dart';
+import 'package:nagpur_rider/screens/feed_page/rider_popup/cubit/alert_accept_cubit.dart';
 import 'package:nagpur_rider/utils/services/session_service.dart';
 
 import 'package:nagpur_rider/config/theme_bloc.dart';
@@ -27,7 +29,9 @@ import 'package:provider/provider.dart';
 import '../../../utils/widgets/toast_message.dart';
 
 class MorePage extends StatefulWidget {
-  const MorePage({super.key});
+  final AuthRepository? authRepository;
+
+  const MorePage({super.key, this.authRepository});
 
   @override
   State<MorePage> createState() => _MorePageState();
@@ -35,6 +39,7 @@ class MorePage extends StatefulWidget {
 
 class _MorePageState extends State<MorePage> {
   bool _isActive = false;
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
@@ -578,51 +583,63 @@ class _MorePageState extends State<MorePage> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context, bool isDarkTheme) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: isDarkTheme ? AppColors.cardDarkColor : Colors.white,
-          title: CustomText(
-            text: AppLocalizations.of(context)!.logout,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
-          content: CustomText(
-            text: AppLocalizations.of(context)!.areYouSureLogout,
-            fontSize: 16.sp,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: CustomText(
-                text: AppLocalizations.of(context)!.cancel,
-                fontSize: 16.sp,
-              ),
+  Future<void> _showLogoutDialog(BuildContext context, bool isDarkTheme) async {
+    if (_isLoggingOut) return;
+    _isLoggingOut = true;
+    // Keep the page router: the confirmation dialog is disposed on dismissal.
+    final router = GoRouter.of(context);
+    final popup = context.read<RiderPopupCubit>();
+    final alert = context.read<AlertAcceptCubit>();
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor:
+                isDarkTheme ? AppColors.cardDarkColor : Colors.white,
+            title: CustomText(
+              text: AppLocalizations.of(context)!.logout,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
             ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                try {
-                  // Revoke the rider token on the backend; local
-                  // credentials are cleared even if this fails.
-                  await AuthRepository().logout();
-                } catch (_) {}
-                await SessionService.endLocalSession();
-                // Navigate to login page
-                if (!context.mounted) return;
-                GoRouter.of(context).pushReplacement(AppRoutes.login);
-              },
-              child: CustomText(
-                text: AppLocalizations.of(context)!.logout,
-                fontSize: 16.sp,
-              ),
+            content: CustomText(
+              text: AppLocalizations.of(context)!.areYouSureLogout,
+              fontSize: 16.sp,
             ),
-          ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: CustomText(
+                  text: AppLocalizations.of(context)!.cancel,
+                  fontSize: 16.sp,
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: CustomText(
+                  text: AppLocalizations.of(context)!.logout,
+                  fontSize: 16.sp,
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      if (confirmed != true) return;
+      try {
+        // A failed or unreachable server must not prevent local sign-out.
+        await (widget.authRepository ?? AuthRepository()).logout().timeout(
+          const Duration(seconds: 5),
         );
-      },
-    );
+      } catch (_) {}
+      await SessionService.endLocalSession();
+      if (!popup.isClosed) popup.clear();
+      if (!alert.isClosed) alert.clear();
+      // Replace the authenticated route stack, so Back cannot reopen it.
+      router.go(AppRoutes.login);
+    } finally {
+      _isLoggingOut = false;
+    }
   }
 
   void _showLanguageSelectionDialog(BuildContext context, bool isDarkTheme) {
