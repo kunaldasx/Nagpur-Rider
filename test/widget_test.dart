@@ -1,30 +1,63 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nagpur_rider/config/theme_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:nagpur_rider/main.dart';
+import 'package:nagpur_rider/l10n/app_localizations.dart';
+import 'package:nagpur_rider/utils/location_tracker.dart';
+import 'package:nagpur_rider/utils/widgets/location_status_banner.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget( MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-  });
+  // Replaces Flutter's unused counter-template smoke test with the rider UI.
+  for (final entry
+      in <LocationHealthStatus, (String, String?)>{
+        LocationHealthStatus.serviceOff: (
+          "GPS is off. You won't get orders.",
+          'Turn on location',
+        ),
+        LocationHealthStatus.permissionDenied: (
+          "Location access is off. You won't get orders.",
+          'Open settings',
+        ),
+        LocationHealthStatus.backgroundDenied: (
+          'Background location is off. You may miss nearby orders while the app is closed.',
+          'Allow all the time',
+        ),
+        LocationHealthStatus.weakSignal: (
+          'Weak GPS signal. Move to an open area.',
+          null,
+        ),
+        LocationHealthStatus.mockLocation: (
+          'Turn off fake GPS apps to get orders.',
+          null,
+        ),
+        LocationHealthStatus.stale: (
+          "Can't send your location. Check your internet.",
+          null,
+        ),
+      }.entries) {
+    testWidgets('home location banner for ${entry.key}', (tester) async {
+      await tester.pumpWidget(
+        BlocProvider(
+          create: (_) => ThemeBloc(),
+          child: ScreenUtilInit(
+            designSize: const Size(375, 812),
+            builder:
+                (_, __) => MaterialApp(
+                  localizationsDelegates:
+                      AppLocalizations.localizationsDelegates,
+                  supportedLocales: AppLocalizations.supportedLocales,
+                  home: Scaffold(body: LocationIssueBanner(status: entry.key)),
+                ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(entry.value.$1), findsOneWidget);
+      if (entry.value.$2 != null) {
+        expect(find.text(entry.value.$2!), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
