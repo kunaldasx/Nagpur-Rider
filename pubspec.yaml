@@ -104,10 +104,10 @@ flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
  
-  image_path: "assets/png/app_logo.png"
+  image_path: "assets/png/app_icon_rider.png"
   min_sdk_android: 21
-  adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "assets/png/app_logo.png"
+  adaptive_icon_background: "#005ffe"
+  adaptive_icon_foreground: "assets/png/app_icon_rider_fg.png"
 
 
 # For information on the generic Dart part of this file, see the
